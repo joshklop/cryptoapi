@@ -1,0 +1,239 @@
+import asyncio
+import ccxt.async_support as ccxt
+import websockets_api.exchange as exchange
+from ccxt.base.errors import BaseError
+from ccxt.base.errors import ExchangeError
+from ccxt.base.errors import NetworkError
+from ccxt.base.errors import OnMaintenance
+from websockets_api.errors import SubscribeError
+from websockets_api.errors import UnsubscribeError
+from websockets_api.errors import ChannelLimitExceeded
+from websockets_api.errors import Reconnect
+from websockets_api.errors import UnknownResponse
+
+
+class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
+
+    def __init__(self, params={}):
+        super(ccxt.bitfinex2, self).__init__(params)
+        self.channels = {
+            'public': {
+                'ticker': {
+                    'ex_name': 'ticker',
+                    'has': True
+                },
+                'trades': {
+                    'ex_name': 'trades',
+                    'has': True
+                },
+                'order_book': {
+                    'ex_name': 'book',
+                    'has': True
+                },
+                'ohlcv': {
+                    'ex_name': 'candles',
+                    'has': True
+                }
+            },
+            'private': {}
+        }
+        flat_channels = {name: data
+                         for _, v in self.channels.items()
+                         for name, data in v.items()}
+        self.channels_by_ex_name = {v['ex_name']: {'name': symbol,
+                                                   'has': v['has']}
+                                    for symbol, v in flat_channels.items()}
+        self.max_channels = 25  # Maximum number of channels per connection.
+        self.max_connections = {'public': (20, 60000), 'private': (5, 15000)}
+        self.connections = {'public': {}, 'private': {}}
+        self.pending_channels = {'public': {}, 'private': {}}
+        self.result = asyncio.Queue(maxsize=1)
+        self.ws_endpoint = {'public': 'wss://api-pub.bitfinex.com/ws/2',
+                            'private': 'wss://api.bitfinex.com/ws/2'}
+        self.order_book = {}
+
+    async def subscribe_ticker(self, symbols):
+        ids = [self.markets[s]['id'] for s in symbols]
+        requests = [{'event': 'subscribe',
+                     'channel': self.channels['public']['ticker']['ex_name'],
+                     'symbol': id}
+                    for id in ids]
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_trades(self, symbols):
+        ids = [self.markets[s]['id'] for s in symbols]
+        requests = [{'event': 'subscribe',
+                     'channel': self.channels['public']['trades']['ex_name'],
+                     'symbol': id}
+                    for id in ids]
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_order_book(self, symbols, precision='P0',
+                                   frequency='F0', length='25'):
+        ids = [self.markets[s]['id'] for s in symbols]
+        requests = [{'event': 'subscribe',
+                     'channel': self.channels['public']['order_book']['ex_name'],
+                     'symbol': id,
+                     'prec': precision,
+                     'freq': frequency,
+                     'len': length}
+                    for id in ids]
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_ohlcv(self, symbols, timeframe):
+        ids = [self.markets[s]['id'] for s in symbols]
+        timeframe = self.timeframes[timeframe]
+        request = [{'event': 'subscribe',
+                    'channel': self.channels['public']['ohlcv']['ex_name'],
+                    'key': 'trade:' + timeframe + ':' + id}
+                   for id in ids]
+        await self.subscription_handler(request, public=True)
+
+    async def build_unsubscribe_request(self, channel):
+        return {'event': 'unsubscribe',
+                'chanId': channel['ex_channel_id']}
+
+    def parse_reply(self, reply, websocket, public):
+        if isinstance(reply, dict):
+            if reply['event'] == 'subscribed':
+                return self.parse_subscribed(reply, websocket, public)
+            elif reply['event'] == 'unsubscribed':
+                return self.parse_unsubscribed(reply)
+            elif reply['event'] in ['info', 'error']:
+                return self.parse_error(reply, websocket)
+            else:
+                raise UnknownResponse(reply)
+        elif isinstance(reply, list):
+            channel_id = reply[0]
+            for i in super().get_channels(self.connections):
+                if i['ex_channel_id'] == channel_id:
+                    channel = i
+                    if super().key_exists(self.markets, channel['symbol']):
+                        market = self.markets[channel['symbol']]
+                    # Warning: Bitfinex gives some channels the same ex_chan_id
+                    if channel['name'] == 'ticker':
+                        return self.parse_ticker_(reply[1], market)
+                    elif channel['name'] == 'trades':
+                        reply = reply[1] if isinstance(reply[1], list) else reply[2]
+                        return self.parse_trades_(reply, market)
+                    elif channel['name'] == 'order_book':
+                        return self.parse_order_book_(reply[1], market, channel['prec'])
+                    elif channel['name'] == 'ohlcv':
+                        return self.parse_ohlcv_(reply[1])
+                    else:
+                        raise UnknownResponse(reply)
+        else:
+            raise UnknownResponse(reply)
+
+    def parse_subscribed(self, reply, websocket, public):
+        channel = {}
+        ex_name = reply['channel']
+        name = self.channels_by_ex_name[ex_name]['name']
+        channel.update({'request': {'event': 'subscribe',
+                        'channel': ex_name}})
+        channel.update({'channel_id': self.claim_channel_id(),
+                        'ex_channel_id': reply['chanId'],
+                        'name': name})
+        if super().key_exists(reply, 'symbol'):
+            id = reply['symbol']
+            if super().key_exists(self.markets_by_id, id):
+                symbol = self.markets_by_id[id]['symbol']
+            else:
+                return
+            channel.update({'symbol': symbol})
+            channel['request'].update({'symbol': id})
+        elif super().key_exists(reply, 'key'):
+            key = reply['key']
+            _, timeframe, id = key.split(sep=':')[:3]
+            if super().key_exists(self.markets_by_id, id):
+                symbol = self.markets_by_id[id]['symbol']
+            else:
+                return
+            channel.update({'symbol': symbol,
+                            'timeframe': timeframe})
+            channel['request'].update({'key': key})
+        if super().key_exists(reply, 'prec'):
+            result = {'prec': reply['prec'],
+                      'freq': reply['freq'],
+                      'len': int(reply['len'])}
+            channel.update(result)
+            channel['request'].update(result)
+        self.connection_metadata_handler(websocket, channel, public)
+
+    def parse_unsubscribed(self, reply):
+        for c in super().get_channels(self.connections):
+            if c['ex_channel_id'] == reply['chanId']:
+                channel = c
+                del c  # Unregister the channel
+                return {'unsubscribed': channel['channel_id']}
+
+    def parse_error(self, reply, websocket):
+        code = reply['code'] if self.key_exists(reply, 'code') else None
+        if reply['event'] == 'error':
+            if code == 10000:
+                raise BaseError('Unknown event.')
+            elif code == 10001:
+                raise ExchangeError('Unknown pair.')
+            elif code == 10300:
+                raise SubscribeError
+            elif code == 10301:
+                raise SubscribeError('Already subscribed.')
+            elif code == 10302:
+                raise SubscribeError('Unknown channel.')
+            elif code == 10305:
+                raise ChannelLimitExceeded
+            elif code == 10400:
+                raise UnsubscribeError
+            elif code == 10401:
+                raise UnsubscribeError('Not subscribed.')
+        elif reply['event'] == 'info':
+            if super().key_exists(reply, 'version'):
+                if reply['version'] == 2:
+                    pass
+                else:
+                    raise NetworkError('Version number changed.')
+            elif code == 20051:
+                raise Reconnect('Unsubscribe/subscribe to all channels.')
+            elif code == 20060:
+                raise OnMaintenance('Exchange is undergoing maintenance.'
+                                    + ' Pause activity for 2 minutes and then'
+                                    + ' unsubscribe/subscribe all channels.')
+        else:
+            raise BaseError(reply['msg'])
+
+    def parse_ticker_(self, ticker, market):
+        return self.parse_ticker(ticker, market)
+
+    def parse_trades_(self, trades, market):
+        if not isinstance(trades[0], list):
+            trades = [trades]
+        trades = self.sort_by(trades, 1)  # Sort by timestamp
+        return [self.parse_trade(t, market=market) for t in trades]
+
+    def parse_order_book_(self, orderbook, market, precision='R0'):
+        # Mostly taken from ccxt.bitfinex2.parse_order_book
+        symbol = market['symbol']
+        priceIndex = 1 if (precision == 'R0') else 0
+        if not isinstance(orderbook[0], list):
+            orderbook = [orderbook]
+        for i in range(0, len(orderbook)):
+            order = orderbook[i]
+            price = order[priceIndex]
+            side = 'bids' if (order[2] > 0) else 'asks'
+            amount = abs(order[2])
+            self.order_book[symbol][side].append([price, amount])
+        timeframe = self.milliseconds()
+        self.order_book[symbol].update({
+            'timeframe': timeframe,
+            'datetime': self.iso8601(timeframe),
+            'nonce': None
+        })
+        self.order_book[symbol]['bids'] = sorted(self.order_book[symbol]['bids'], key=lambda l: l[0], reverse=True)
+        self.order_book[symbol]['asks'] = sorted(self.order_book[symbol]['asks'], key=lambda l: l[0])
+        return 'order_book', {symbol: self.order_book[symbol]}
+
+    def parse_ohlcv_(self, ohlcvs):
+        if not isinstance(ohlcvs[0], list):
+            ohlcvs = [ohlcvs]
+        ohlcvs = [[i[0], i[1], i[3], i[4], i[2], i[5]] for i in ohlcvs]
+        return 'ohlcv', self.sort_by(ohlcvs, 0)
