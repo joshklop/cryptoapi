@@ -53,35 +53,14 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         }
         self.order_book = {}
 
-    async def subscribe_ticker(self, symbols):
+    def build_requests(self, symbols, name, params={}):
         ids = [self.markets[s]['id'] for s in symbols]
-        name = self.channels['public']['ticker']['ex_name']
-        requests = [
+        ex_name = self.channels['public'][name]['ex_name']
+        return [
             {'type': 'subscribe',
-             'channels': [{'name': name, 'product_ids': [id]}]}
+             'channels': [{'name': ex_name, 'product_ids': [id]}]}.update(params)
             for id in ids
         ]
-        await self.subscription_handler(requests, public=True)
-
-    async def subscribe_trades(self, symbols):
-        ids = [self.markets[s]['id'] for s in symbols]
-        requests = [
-            {'type': 'subscribe',
-             'product_ids': [id],
-             'channels': [self.channels['public']['trades']['ex_name']]}
-            for id in ids
-        ]
-        await self.subscription_handler(requests, public=True)
-
-    async def subscribe_order_book(self, symbols):
-        ids = [self.markets[s]['id'] for s in symbols]
-        requests = [
-            {'type': 'subscribe',
-             'product_ids': [id],
-             'channels': [self.channels['public']['order_book']['ex_name']]}
-            for id in ids
-        ]
-        await self.subscription_handler(requests, public=True)
 
     async def build_unsubscribe_request(self, channel):
         return {
@@ -89,6 +68,18 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
             'product_ids': channel['ex_channel_id'][0],
             'channels': [channel['ex_channel_id'][1]]
         }
+
+    async def subscribe_ticker(self, symbols, params={}):
+        requests = self.build_requests(symbols, 'ticker')
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_trades(self, symbols, params={}):
+        requests = self.build_requests(symbols, 'trades')
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_order_book(self, symbols, params={}):
+        requests = self.build_requests(symbols, 'order_book')
+        await self.subscription_handler(requests, public=True)
 
     def parse_reply(self, reply, websocket, public):
         event = reply['type']

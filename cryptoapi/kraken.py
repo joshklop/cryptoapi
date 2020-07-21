@@ -51,41 +51,38 @@ class Kraken(exchange.Exchange, ccxt.kraken):
                             'private': ''}
         self.order_book = {}
 
-    async def subscribe_ticker(self, symbols):
-        ex_name = self.channels['public']['ticker']['ex_name']
-        requests = [
-            {'event': 'subscribe', 'pair': [s], 'subscription': {'name': ex_name}}
-            for s in symbols
+    def build_requests(self, symbols, name, params={}):
+        ids = [self.markets[s]['id'] for s in symbols]
+        ex_name = self.channels['public'][name]['ex_name']
+        return [
+            {'event': 'subscribe',
+             'pair': [id],
+             'subscription': {'name': ex_name}.update(params)}
+            for id in ids
         ]
-        await self.subscription_handler(requests, public=True)
-
-    async def subscribe_trades(self, symbols):
-        ex_name = self.channels['public']['trades']['ex_name']
-        requests = [
-            {'event': 'subscribe', 'pair': [s], 'subscription': {'name': ex_name}}
-            for s in symbols
-        ]
-        await self.subscription_handler(requests, public=True)
-
-    async def subscribe_order_book(self, symbols):
-        depth = 100
-        ex_name = self.channels['public']['order_book']['ex_name']
-        requests = [
-            {'event': 'subscribe', 'pair': [s], 'subscription': {'depth': depth, 'name': ex_name}}
-            for s in symbols
-        ]
-        await self.subscription_handler(requests, public=True)
-
-    async def subscribe_ohlcvs(self, symbols, timeframe='1m'):
-        ex_name = self.channels['public']['ohlcv']['ex_name']
-        ex_timeframe = self.timeframes[timeframe]
-        requests = [{'event': 'subscribe', 'pair': [s], 'subscription': {'interval': ex_timeframe, 'name': ex_name}}
-                    for s in symbols]  # extra info that you need
-        await self.subscription_handler(requests, public=True)
 
     # TODO
     async def build_unsubscribe_request(self, channel):
         pass
+
+    async def subscribe_ticker(self, symbols):
+        requests = self.build_requests(symbols, 'ticker')
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_trades(self, symbols):
+        requests = self.build_requests(symbols, 'trades')
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_order_book(self, symbols, depth=100):
+        params = {'depth': 100}
+        requests = self.build_requests(symbols, 'order_book', params)
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_ohlcvs(self, symbols, timeframe='1m'):
+        ex_timeframe = self.timeframes[timeframe]
+        params = {'interval': ex_timeframe}
+        requests = self.build_requests(symbols, 'ohlcvs', params)
+        await self.subscription_handler(requests, public=True)
 
     def parse_reply(self, reply, websocket, public):
         event = reply['event']

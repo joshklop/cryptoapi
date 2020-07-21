@@ -60,58 +60,45 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         }
         self.order_book = {}
 
-    async def subscribe_ticker(self, symbols):
-        ids = [self.markets[s]['id'] for s in symbols]
-        requests = [
-            {'event': 'subscribe',
-             'channel': self.channels['public']['ticker']['ex_name'],
-             'symbol': id}
-            for id in ids
-        ]
-        await self.subscription_handler(requests, public=True)
-
-    async def subscribe_trades(self, symbols):
-        ids = [self.markets[s]['id'] for s in symbols]
-        requests = [
-            {'event': 'subscribe',
-             'channel': self.channels['public']['trades']['ex_name'],
-             'symbol': id}
-            for id in ids
-        ]
-        await self.subscription_handler(requests, public=True)
-
-    async def subscribe_order_book(self, symbols):
-        depth = 50
-        precision = 'P0'
-        frequency = 'F0'
-        ids = [self.markets[s]['id'] for s in symbols]
-        requests = [
-            {'event': 'subscribe',
-             'channel': self.channels['public']['order_book']['ex_name'],
-             'symbol': id,
-             'prec': precision,
-             'freq': frequency,
-             'len': depth}
-            for id in ids
-        ]
-        await self.subscription_handler(requests, public=True)
-
-    async def subscribe_ohlcvs(self, symbols, timeframe='1m'):
-        ids = [self.markets[s]['id'] for s in symbols]
-        timeframe = self.timeframes[timeframe]
-        requests = [
-            {'event': 'subscribe',
-             'channel': self.channels['public']['ohlcv']['ex_name'],
-             'key': 'trade:' + timeframe + ':' + id}
-            for id in ids
-        ]
-        await self.subscription_handler(requests, public=True)
-
     async def build_unsubscribe_request(self, channel):
         return {
             'event': 'unsubscribe',
             'chanId': channel['ex_channel_id']
         }
+
+    def build_requests(self, symbols, name, params={}):
+        ids = [self.markets[s]['id'] for s in symbols]
+        ex_name = self.channels['public'][name]['ex_name']
+        return [
+            {'event': 'subscribe',
+             'channel': ex_name,
+             'symbol': id}.update(params)
+            for id in ids
+        ]
+
+    async def subscribe_ticker(self, symbols):
+        requests = self.build_requests(symbols, 'ticker')
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_trades(self, symbols):
+        requests = self.build_requests(symbols, 'trades')
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_order_book(self, symbols, precision='P0',
+                                   frequency='F0', depth=100):
+        params = {
+            'prec': precision,
+            'freq': frequency,
+            'len': depth
+        }
+        requests = self.build_requests(symbols, 'order_book', params)
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_ohlcvs(self, symbols, timeframe='1m'):
+        ex_timeframe = self.timeframes[timeframe]
+        params = {'key': 'trade:' + ex_timeframe + ':' + id}
+        requests = self.build_requests(symbols, 'ohlcvs', params)
+        await self.subscription_handler(requests, public=True)
 
     def parse_reply(self, reply, websocket, public):
         event = reply['event']
