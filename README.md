@@ -1,4 +1,4 @@
-# crypto-api
+# cryptoapi
 Cryptocurrency REST and websocket API with support for multiple exchanges.
 
 **NOTE**: At the moment, this is primarily a personal project and I do not make any guarantees that it will work on your system.
