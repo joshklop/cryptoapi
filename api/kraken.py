@@ -30,12 +30,18 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             },
             'private': {}
         }
-        flat_channels = {name: data
-                         for _, v in self.channels.items()
-                         for name, data in v.items()}
-        self.channels_by_ex_name = {v['ex_name']: {'name': symbol,
-                                                   'has': v['has']}
-                                    for symbol, v in flat_channels.items()}
+        flat_channels = {
+            name: data
+            for _, v in self.channels.items()
+            for name, data in v.items()
+        }
+        self.channels_by_ex_name = {
+            v['ex_name']: {
+                'name': symbol,
+                'has': v['has']
+            }
+            for symbol, v in flat_channels.items()
+        }
         self.max_channels = 45  # Maximum number of channels per connection. Kraken has a really complicated algorithm, but this is a safe bet.
         self.max_connections = {'public': (1000000, 60000), 'private': (0, 0)}
         self.connections = {'public': {}, 'private': {}}
@@ -47,21 +53,27 @@ class Kraken(exchange.Exchange, ccxt.kraken):
 
     async def subscribe_ticker(self, symbols):
         ex_name = self.channels['public']['ticker']['ex_name']
-        requests = [{'event': 'subscribe', 'pair': [s], 'subscription': {'name': ex_name}}
-                    for s in symbols]
+        requests = [
+            {'event': 'subscribe', 'pair': [s], 'subscription': {'name': ex_name}}
+            for s in symbols
+        ]
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_trades(self, symbols):
         ex_name = self.channels['public']['trades']['ex_name']
-        requests = [{'event': 'subscribe', 'pair': [s], 'subscription': {'name': ex_name}}
-                    for s in symbols]
+        requests = [
+            {'event': 'subscribe', 'pair': [s], 'subscription': {'name': ex_name}}
+            for s in symbols
+        ]
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_order_book(self, symbols):
         depth = 100
         ex_name = self.channels['public']['order_book']['ex_name']
-        requests = [{'event': 'subscribe', 'pair': [s], 'subscription': {'depth': depth, 'name': ex_name}}
-                    for s in symbols]
+        requests = [
+            {'event': 'subscribe', 'pair': [s], 'subscription': {'depth': depth, 'name': ex_name}}
+            for s in symbols
+        ]
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_ohlcvs(self, symbols, timeframe='1m'):
@@ -238,4 +250,4 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         if not isinstance(ohlcvs[0], list):
             ohlcvs = [ohlcvs]
         return 'ohlcvs', {symbol: [[i[1], float(i[2]), float(i[3]), float(i[4]), float(i[5]), float(i[6])]
-                         for i in ohlcvs]}
+                          for i in ohlcvs]}

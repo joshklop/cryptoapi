@@ -37,35 +37,47 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
             },
             'private': {}
         }
-        flat_channels = {name: data
-                         for _, v in self.channels.items()
-                         for name, data in v.items()}
-        self.channels_by_ex_name = {v['ex_name']: {'name': symbol,
-                                                   'has': v['has']}
-                                    for symbol, v in flat_channels.items()}
+        flat_channels = {
+            name: data
+            for _, v in self.channels.items()
+            for name, data in v.items()
+        }
+        self.channels_by_ex_name = {
+            v['ex_name']: {
+                'name': symbol,
+                'has': v['has']
+            }
+            for symbol, v in flat_channels.items()
+        }
         self.max_channels = 25  # Maximum number of channels per connection.
         self.max_connections = {'public': (20, 60000), 'private': (5, 15000)}
         self.connections = {'public': {}, 'private': {}}
         self.pending_channels = {'public': {}, 'private': {}}
         self.result = asyncio.Queue(maxsize=1)
-        self.ws_endpoint = {'public': 'wss://api-pub.bitfinex.com/ws/2',
-                            'private': 'wss://api.bitfinex.com/ws/2'}
+        self.ws_endpoint = {
+            'public': 'wss://api-pub.bitfinex.com/ws/2',
+            'private': 'wss://api.bitfinex.com/ws/2'
+        }
         self.order_book = {}
 
     async def subscribe_ticker(self, symbols):
         ids = [self.markets[s]['id'] for s in symbols]
-        requests = [{'event': 'subscribe',
-                     'channel': self.channels['public']['ticker']['ex_name'],
-                     'symbol': id}
-                    for id in ids]
+        requests = [
+            {'event': 'subscribe',
+             'channel': self.channels['public']['ticker']['ex_name'],
+             'symbol': id}
+            for id in ids
+        ]
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_trades(self, symbols):
         ids = [self.markets[s]['id'] for s in symbols]
-        requests = [{'event': 'subscribe',
-                     'channel': self.channels['public']['trades']['ex_name'],
-                     'symbol': id}
-                    for id in ids]
+        requests = [
+            {'event': 'subscribe',
+             'channel': self.channels['public']['trades']['ex_name'],
+             'symbol': id}
+            for id in ids
+        ]
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_order_book(self, symbols):
@@ -73,27 +85,33 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         precision = 'P0'
         frequency = 'F0'
         ids = [self.markets[s]['id'] for s in symbols]
-        requests = [{'event': 'subscribe',
-                     'channel': self.channels['public']['order_book']['ex_name'],
-                     'symbol': id,
-                     'prec': precision,
-                     'freq': frequency,
-                     'len': depth}
-                    for id in ids]
+        requests = [
+            {'event': 'subscribe',
+             'channel': self.channels['public']['order_book']['ex_name'],
+             'symbol': id,
+             'prec': precision,
+             'freq': frequency,
+             'len': depth}
+            for id in ids
+        ]
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_ohlcvs(self, symbols, timeframe='1m'):
         ids = [self.markets[s]['id'] for s in symbols]
         timeframe = self.timeframes[timeframe]
-        request = [{'event': 'subscribe',
-                    'channel': self.channels['public']['ohlcv']['ex_name'],
-                    'key': 'trade:' + timeframe + ':' + id}
-                   for id in ids]
-        await self.subscription_handler(request, public=True)
+        requests = [
+            {'event': 'subscribe',
+             'channel': self.channels['public']['ohlcv']['ex_name'],
+             'key': 'trade:' + timeframe + ':' + id}
+            for id in ids
+        ]
+        await self.subscription_handler(requests, public=True)
 
     async def build_unsubscribe_request(self, channel):
-        return {'event': 'unsubscribe',
-                'chanId': channel['ex_channel_id']}
+        return {
+            'event': 'unsubscribe',
+            'chanId': channel['ex_channel_id']
+        }
 
     def parse_reply(self, reply, websocket, public):
         event = reply['event']
@@ -132,11 +150,14 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         channel = {}
         ex_name = reply['channel']
         name = self.channels_by_ex_name[ex_name]['name']
-        channel.update({'request': {'event': 'subscribe',
-                        'channel': ex_name}})
-        channel.update({'channel_id': self.claim_channel_id(),
-                        'ex_channel_id': reply['chanId'],
-                        'name': name})
+        channel.update({
+            'request': {'event': 'subscribe', 'channel': ex_name}
+        })
+        channel.update({
+            'channel_id': self.claim_channel_id(),
+            'ex_channel_id': reply['chanId'],
+            'name': name
+        })
         if super().key_exists(reply, 'symbol'):
             id = reply['symbol']
             if super().key_exists(self.markets_by_id, id):
@@ -152,13 +173,17 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
                 symbol = self.markets_by_id[id]['symbol']
             else:
                 return
-            channel.update({'symbol': symbol,
-                            'timeframe': timeframe})
+            channel.update({
+                'symbol': symbol,
+                'timeframe': timeframe
+            })
             channel['request'].update({'key': key})
         if super().key_exists(reply, 'prec'):
-            result = {'prec': reply['prec'],
-                      'freq': reply['freq'],
-                      'len': int(reply['len'])}
+            result = {
+                'prec': reply['prec'],
+                'freq': reply['freq'],
+                'len': int(reply['len'])
+            }
             channel.update(result)
             channel['request'].update(result)
         self.connection_metadata_handler(websocket, channel, public)
@@ -198,9 +223,11 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
             elif code == 20051:
                 raise Reconnect('Unsubscribe/subscribe to all channels.')
             elif code == 20060:
-                raise OnMaintenance('Exchange is undergoing maintenance.'
-                                    + ' Pause activity for 2 minutes and then'
-                                    + ' unsubscribe/subscribe all channels.')
+                raise OnMaintenance(
+                    'Exchange is undergoing maintenance.'
+                    + ' Pause activity for 2 minutes and then'
+                    + ' unsubscribe/subscribe all channels.'
+                )
         else:
             raise BaseError(reply['msg'])
 

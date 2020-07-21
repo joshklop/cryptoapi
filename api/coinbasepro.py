@@ -30,49 +30,65 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
             },
             'private': {}
         }
-        flat_channels = {name: data
-                         for _, v in self.channels.items()
-                         for name, data in v.items()}
-        self.channels_by_ex_name = {v['ex_name']: {'name': symbol,
-                                                   'has': v['has']}
-                                    for symbol, v in flat_channels.items()}
+        flat_channels = {
+            name: data
+            for _, v in self.channels.items()
+            for name, data in v.items()
+        }
+        self.channels_by_ex_name = {
+            v['ex_name']: {
+                'name': symbol,
+                'has': v['has']
+            }
+            for symbol, v in flat_channels.items()
+        }
         self.max_channels = 1000000  # Maximum number of channels per connection. No limit for coinbasepro
         self.max_connections = {'public': (1, 4000), 'private': (0, 0)}
         self.connections = {'public': {}, 'private': {}}
         self.pending_channels = {'public': {}, 'private': {}}
         self.result = asyncio.Queue(maxsize=1)
-        self.ws_endpoint = {'public': 'wss://ws-feed.pro.coinbase.com',
-                            'private': ''}
+        self.ws_endpoint = {
+            'public': 'wss://ws-feed.pro.coinbase.com',
+            'private': ''
+        }
         self.order_book = {}
 
     async def subscribe_ticker(self, symbols):
         ids = [self.markets[s]['id'] for s in symbols]
         name = self.channels['public']['ticker']['ex_name']
-        requests = [{'type': 'subscribe',
-                     'channels': [{'name': name, 'product_ids': [id]}]}
-                    for id in ids]
+        requests = [
+            {'type': 'subscribe',
+             'channels': [{'name': name, 'product_ids': [id]}]}
+            for id in ids
+        ]
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_trades(self, symbols):
         ids = [self.markets[s]['id'] for s in symbols]
-        requests = [{'type': 'subscribe',
-                     'product_ids': [id],
-                     'channels': [self.channels['public']['trades']['ex_name']]}
-                    for id in ids]
+        requests = [
+            {'type': 'subscribe',
+             'product_ids': [id],
+             'channels': [self.channels['public']['trades']['ex_name']]}
+            for id in ids
+        ]
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_order_book(self, symbols):
         ids = [self.markets[s]['id'] for s in symbols]
-        requests = [{'type': 'subscribe',
-                     'product_ids': [id],
-                     'channels': [self.channels['public']['order_book']['ex_name']]}
-                    for id in ids]
+        requests = [
+            {'type': 'subscribe',
+             'product_ids': [id],
+             'channels': [self.channels['public']['order_book']['ex_name']]}
+            for id in ids
+        ]
         await self.subscription_handler(requests, public=True)
 
     async def build_unsubscribe_request(self, channel):
-        return {'type': 'unsubscribe',
-                'product_ids': channel['ex_channel_id'][0],
-                'channels': [channel['ex_channel_id'][1]]}
+        return {
+            'type': 'unsubscribe',
+            'product_ids': channel['ex_channel_id'][0],
+            'channels': [channel['ex_channel_id'][1]]
+        }
 
     def parse_reply(self, reply, websocket, public):
         event = reply['type']
