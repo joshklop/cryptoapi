@@ -7,8 +7,10 @@ import ccxt.async_support as ccxt
 class Exchange(ccxt.Exchange):
     async def send(self, websocket, requests):
         requests = [super(Exchange, self).json(r) for r in requests]
-        tasks = [asyncio.create_task(websocket.send(r))
-                 for r in requests]
+        tasks = [
+            asyncio.create_task(websocket.send(r))
+            for r in requests
+        ]
         for t in tasks:
             await t
 

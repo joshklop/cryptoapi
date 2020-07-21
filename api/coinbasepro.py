@@ -1,6 +1,6 @@
 import asyncio
 import ccxt.async_support as ccxt
-import websockets_api.exchange as exchange
+import exchange
 from ccxt.base.errors import BaseError
 from websockets_api.errors import UnknownResponse
 
@@ -23,7 +23,7 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
                     'ex_name': 'level2',
                     'has': True
                 },
-                'ohlcv': {
+                'ohlcvs': {
                     'ex_name': '',
                     'has': False
                 }
@@ -75,22 +75,23 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
                 'channels': [channel['ex_channel_id'][1]]}
 
     def parse_reply(self, reply, websocket, public):
+        event = reply['type']
         # Administrative replies
-        if reply['type'] == 'subscriptions':
+        if event == 'subscriptions':
             return self.parse_subscribed(reply, websocket, public)
-        elif reply['type'] == 'unsubscribe':
+        elif event == 'unsubscribe':
             return self.parse_unsubscribed(reply)
-        elif reply['type'] == 'error':
+        elif event == 'error':
             return self.parse_error(reply)
         # Market data replies
         id = reply['product_id']
         market = self.markets_by_id[id]
-        if reply['type'] == 'ticker':
-            return self.parse_ticker_(reply, market)
-        elif reply['type'] in ['snapshot', 'l2update']:
-            return self.parse_order_book_(reply, market['symbol'])
-        elif reply['type'] in ['matches', 'last_match']:
-            return self.parse_trades_(reply, market)
+        if event == 'ticker':
+            return self.parse_ticker(reply, market)
+        elif event in ['snapshot', 'l2update']:
+            return self.parse_order_book(reply, market)
+        elif event in ['matches', 'last_match']:
+            return self.parse_trades(reply, market)
         else:
             raise UnknownResponse(reply)
 
@@ -135,15 +136,16 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         reason = f"Reason: {reply['reason']}" if super().key_exists(reply, 'reason') else ''
         raise BaseError(err + "\n" + reason)
 
-    def parse_ticker_(self, ticker, market):
-        return 'ticker', self.parse_ticker(ticker, market)
+    def parse_ticker(self, ticker, market):
+        return 'ticker', super().parse_ticker(ticker, market)
 
-    def parse_trades_(self, trades, market):
-        return 'trades', self.parse_trade(trades, market=market)
+    def parse_trades(self, trade, market):
+        return 'trades', [super().parse_trade(trade, market=market)]
 
-    def parse_order_book_(self, order_book, symbol):
+    def parse_order_book(self, order_book, market):
+        symbol = market['symbol']
         if order_book['type'] == 'snapshot':
-            order_book = self.parse_order_book(order_book)
+            order_book = super().parse_order_book(order_book)
             self.order_book[symbol] = {'bids': order_book['bids'], 'asks': order_book['asks']}
         else:
             for change in order_book['changes']:

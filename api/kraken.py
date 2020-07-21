@@ -1,8 +1,8 @@
 import asyncio
 import ccxt.async_support as ccxt
-import websockets_api.exchange as exchange
+import exchange
 from ccxt.base.errors import BaseError
-from websockets_api.errors import UnknownResponse
+from errors import UnknownResponse
 
 
 class Kraken(exchange.Exchange, ccxt.kraken):
@@ -23,7 +23,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
                     'ex_name': 'book',
                     'has': True
                 },
-                'ohlcv': {
+                'ohlcvs': {
                     'ex_name': 'ohlc',
                     'has': True
                 }
@@ -75,17 +75,19 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         pass
 
     def parse_reply(self, reply, websocket, public):
+        event = reply['event']
         if isinstance(reply, dict):
-            if reply['event'] in ['subscriptionStatus', 'systemStatus']:
-                if reply['status'] == 'subscribed':
+            if event in ['subscriptionStatus', 'systemStatus']:
+                status = reply['status']
+                if status == 'subscribed':
                     return self.parse_subscribed(reply, websocket, public)
-                elif reply['status'] == 'unsubscribed':
+                elif status == 'unsubscribed':
                     return self.parse_unsubscribed(reply)
-                elif reply['status'] == 'error':
+                elif status == 'error':
                     return self.parse_error(reply)
                 else:
                     return
-            elif reply['event'] == 'heartbeat':
+            elif event == 'heartbeat':
                 return
             else:
                 raise UnknownResponse(reply)
@@ -93,15 +95,16 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             for c in super().get_channels(self.connections):
                 if c['ex_channel_id'] == reply[0]:
                     name = c['name']
-                    data = reply[1]
+                    symbol = reply[-1]
+                    market = self.markets_by_id[symbol]
                     if name == 'ticker':
-                        return self.parse_ticker_(data, reply[-1])
+                        return self.parse_ticker(reply[1], market)
                     elif name == 'trades':
-                        return self.parse_trades_(data, reply[-1])
+                        return self.parse_trades(reply[1], market)
                     elif name == 'order_book':
-                        return self.parse_order_book_(data, reply[-1])
+                        return self.parse_order_book(reply[1], market)
                     elif name == 'ohlcv':
-                        return self.parse_ohlcv_(data)
+                        return self.parse_ohlcvs(reply[1], market)
                     else:
                         raise UnknownResponse(reply)
         else:
@@ -139,8 +142,8 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         else:
             raise BaseError(reply['errorMessage'])
 
-    def parse_ticker_(self, ticker, symbol):
-        timestamp = self.milliseconds()
+    def parse_ticker(self, ticker, market):
+        symbol = market['symbol']
         open = float(ticker['o'][0])
         close = float(ticker['c'][0])
         last = float(close)
@@ -148,6 +151,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         baseVolume = float(ticker['v'][1])
         vwap = float(ticker['p'][1])
         quoteVolume = None
+        timestamp = self.milliseconds()
         if baseVolume is not None and vwap is not None:
             quoteVolume = baseVolume * vwap
         return 'ticker', {
@@ -173,9 +177,10 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             'quoteVolume': quoteVolume
         }
 
-    def parse_trades_(self, trades, symbol):
+    def parse_trades(self, trades, market):
         timestamp = self.milliseconds()
         datetime = self.iso8601(timestamp)
+        symbol = market['symbol']
         result = []
         for trade in trades:
             price = float(trade[0])
@@ -200,18 +205,20 @@ class Kraken(exchange.Exchange, ccxt.kraken):
 
     # Override ccxt.Exchange.safe_integer. Kraken's websocket stream sends timestamps as floats.
     # This is particularly important for parse_order_book_.
+    # FIXME: this is dangerous. Affects other methods as well, not just parse_order_book.
     def safe_integer(self, dictionary, key):
         return float(dictionary[key])
 
-    def parse_order_book_(self, order_book, symbol):
+    def parse_order_book(self, order_book, market):
+        symbol = market['symbol']
         # Snapshot
         if super().key_exists(order_book, 'bs'):
-            order_book = self.parse_order_book(order_book, bids_key='bs', asks_key='as')
+            order_book = super().parse_order_book(order_book, bids_key='bs', asks_key='as')
             bids, asks = [ask[:2] for ask in order_book['asks']], [ask[:2] for ask in order_book['asks']]
             self.order_book[symbol] = {'bids': bids, 'asks': asks}
         # Updates
         else:
-            order_book = self.parse_order_book(order_book, bids_key='b', asks_key='a')
+            order_book = super().parse_order_book(order_book, bids_key='b', asks_key='a')
             bids, asks = [ask[:2] for ask in order_book['asks']], [ask[:2] for ask in order_book['asks']]
             self.order_book[symbol]['bids'].extend(bids)
             self.order_book[symbol]['asks'].extend(asks)
@@ -225,8 +232,9 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         self.order_book[symbol]['asks'] = sorted(self.order_book[symbol]['asks'], key=lambda l: l[0])
         return 'order_book', {symbol: self.order_book[symbol]}
 
-    def parse_ohlcv_(self, ohlcvs):
+    def parse_ohlcvs(self, ohlcvs, market):
+        symbol = market['symbol']
         if not isinstance(ohlcvs[0], list):
             ohlcvs = [ohlcvs]
-        return 'ohlcv', [[i[1], float(i[2]), float(i[3]), float(i[4]), float(i[5]), float(i[6])]
-                         for i in ohlcvs]
+        return 'ohlcvs', {symbol: [[i[1], float(i[2]), float(i[3]), float(i[4]), float(i[5]), float(i[6])]
+                         for i in ohlcvs]}
