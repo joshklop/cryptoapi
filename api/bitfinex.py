@@ -68,19 +68,21 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
                     for id in ids]
         await self.subscription_handler(requests, public=True)
 
-    async def subscribe_order_book(self, symbols, precision='P0',
-                                   frequency='F0', length='25'):
+    async def subscribe_order_book(self, symbols):
+        depth = 50
+        precision = 'P0'
+        frequency = 'F0'
         ids = [self.markets[s]['id'] for s in symbols]
         requests = [{'event': 'subscribe',
                      'channel': self.channels['public']['order_book']['ex_name'],
                      'symbol': id,
                      'prec': precision,
                      'freq': frequency,
-                     'len': length}
+                     'len': depth}
                     for id in ids]
         await self.subscription_handler(requests, public=True)
 
-    async def subscribe_ohlcv(self, symbols, timeframe):
+    async def subscribe_ohlcvs(self, symbols, timeframe='1m'):
         ids = [self.markets[s]['id'] for s in symbols]
         timeframe = self.timeframes[timeframe]
         request = [{'event': 'subscribe',

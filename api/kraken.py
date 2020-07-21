@@ -57,13 +57,14 @@ class Kraken(exchange.Exchange, ccxt.kraken):
                     for s in symbols]
         await self.subscription_handler(requests, public=True)
 
-    async def subscribe_order_book(self, symbols, depth=10):
+    async def subscribe_order_book(self, symbols):
+        depth = 100
         ex_name = self.channels['public']['order_book']['ex_name']
         requests = [{'event': 'subscribe', 'pair': [s], 'subscription': {'depth': depth, 'name': ex_name}}
                     for s in symbols]
         await self.subscription_handler(requests, public=True)
 
-    async def subscribe_ohlcv(self, symbols, timeframe='1m'):
+    async def subscribe_ohlcvs(self, symbols, timeframe='1m'):
         ex_name = self.channels['public']['ohlcv']['ex_name']
         ex_timeframe = self.timeframes[timeframe]
         requests = [{'event': 'subscribe', 'pair': [s], 'subscription': {'interval': ex_timeframe, 'name': ex_name}}
