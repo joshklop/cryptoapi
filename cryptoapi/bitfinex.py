@@ -15,22 +15,22 @@ from websockets_api.errors import UnknownResponse
 class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
 
     def __init__(self, params={}):
-        super(ccxt.bitfinex2, self).__init__(params)
+        super(exchange.Exchange, self).__init__(params)
         self.channels = {
             'public': {
-                'ticker': {
+                super().TICKER: {
                     'ex_name': 'ticker',
                     'has': True
                 },
-                'trades': {
+                super().TRADES: {
                     'ex_name': 'trades',
                     'has': True
                 },
-                'order_book': {
+                super().ORDER_BOOK: {
                     'ex_name': 'book',
                     'has': True
                 },
-                'ohlcvs': {
+                super().OHLCVS: {
                     'ex_name': 'candles',
                     'has': True
                 }
@@ -77,11 +77,11 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         ]
 
     async def subscribe_ticker(self, symbols):
-        requests = self.build_requests(symbols, 'ticker')
+        requests = self.build_requests(symbols, super().TICKER)
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_trades(self, symbols):
-        requests = self.build_requests(symbols, 'trades')
+        requests = self.build_requests(symbols, super().TRADES)
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_order_book(self, symbols, precision='P0',
@@ -91,13 +91,13 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
             'freq': frequency,
             'len': depth
         }
-        requests = self.build_requests(symbols, 'order_book', params)
+        requests = self.build_requests(symbols, super().ORDER_BOOK, params)
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_ohlcvs(self, symbols, timeframe='1m'):
         ex_timeframe = self.timeframes[timeframe]
         params = {'key': 'trade:' + ex_timeframe + ':' + id}
-        requests = self.build_requests(symbols, 'ohlcvs', params)
+        requests = self.build_requests(symbols, super().OHLCVS, params)
         await self.subscription_handler(requests, public=True)
 
     def parse_reply(self, reply, websocket, public):
@@ -119,14 +119,14 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
                     name = c['name']
                     symbol = c['symbol']
                     market = self.markets[symbol]
-                    if name == 'ticker':
+                    if name == super().TICKER:
                         return self.parse_ticker(reply[1], market)
-                    elif name == 'trades':
+                    elif name == super().TRADES:
                         reply = reply[1] if isinstance(reply[1], list) else reply[2]
                         return self.parse_trades(reply, market)
-                    elif name == 'order_book':
+                    elif name == super().ORDER_BOOK:
                         return self.parse_order_book(reply[1], market, c['prec'])
-                    elif name == 'ohlcv':
+                    elif name == super().OHLCVS:
                         return self.parse_ohlcvs(reply[1], market)
                     else:
                         raise UnknownResponse(reply)
@@ -219,13 +219,13 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
             raise BaseError(reply['msg'])
 
     def parse_ticker(self, ticker, market):
-        return 'ticker', self.parse_ticker(ticker, market)
+        return super().TICKER, self.parse_ticker(ticker, market)
 
     def parse_trades(self, trades, market):
         if not isinstance(trades[0], list):
             trades = [trades]
         trades = self.sort_by(trades, 1)  # Sort by timestamp
-        return 'trades', [self.parse_trade(t, market=market) for t in trades]
+        return super().TRADES, [self.parse_trade(t, market=market) for t in trades]
 
     def parse_order_book(self, orderbook, market, precision='R0'):
         # Mostly taken from ccxt.bitfinex2.parse_order_book
@@ -248,11 +248,11 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         })
         self.order_book[symbol]['bids'] = sorted(self.order_book[symbol]['bids'], key=lambda l: l[0], reverse=True)
         self.order_book[symbol]['asks'] = sorted(self.order_book[symbol]['asks'], key=lambda l: l[0])
-        return 'order_book', {symbol: self.order_book[symbol]}
+        return super().ORDER_BOOK, {symbol: self.order_book[symbol]}
 
     def parse_ohlcvs(self, ohlcvs, market):
         symbol = market['symbol']
         if not isinstance(ohlcvs[0], list):
             ohlcvs = [ohlcvs]
         ohlcvs = [[i[0], i[1], i[3], i[4], i[2], i[5]] for i in ohlcvs]
-        return 'ohlcvs', {symbol: self.sort_by(ohlcvs, 0)}
+        return super().OHLCVS, {symbol: self.sort_by(ohlcvs, 0)}

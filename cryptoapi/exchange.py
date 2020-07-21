@@ -5,6 +5,12 @@ import ccxt.async_support as ccxt
 
 
 class Exchange(ccxt.Exchange):
+
+    TICKER = 'ticker'
+    TRADES = 'trades'
+    ORDER_BOOK = 'order_book'
+    OHLCVS = 'ohlcvs'
+
     async def send(self, websocket, requests):
         requests = [super(Exchange, self).json(r) for r in requests]
         tasks = [

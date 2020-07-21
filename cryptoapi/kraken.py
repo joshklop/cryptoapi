@@ -11,19 +11,19 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         super(ccxt.kraken, self).__init__(params)
         self.channels = {
             'public': {
-                'ticker': {
+                super().TICKER: {
                     'ex_name': 'ticker',
                     'has': True
                 },
-                'trades': {
+                super().TRADES: {
                     'ex_name': 'trade',
                     'has': True
                 },
-                'order_book': {
+                super().ORDER_BOOK: {
                     'ex_name': 'book',
                     'has': True
                 },
-                'ohlcvs': {
+                super().OHLCVS: {
                     'ex_name': 'ohlc',
                     'has': True
                 }
@@ -66,22 +66,22 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         pass
 
     async def subscribe_ticker(self, symbols):
-        requests = self.build_requests(symbols, 'ticker')
+        requests = self.build_requests(symbols, super().TICKER)
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_trades(self, symbols):
-        requests = self.build_requests(symbols, 'trades')
+        requests = self.build_requests(symbols, super().TRADES)
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_order_book(self, symbols, depth=100):
         params = {'depth': 100}
-        requests = self.build_requests(symbols, 'order_book', params)
+        requests = self.build_requests(symbols, super().ORDER_BOOK, params)
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_ohlcvs(self, symbols, timeframe='1m'):
         ex_timeframe = self.timeframes[timeframe]
         params = {'interval': ex_timeframe}
-        requests = self.build_requests(symbols, 'ohlcvs', params)
+        requests = self.build_requests(symbols, super().OHLCVS, params)
         await self.subscription_handler(requests, public=True)
 
     def parse_reply(self, reply, websocket, public):
@@ -107,13 +107,13 @@ class Kraken(exchange.Exchange, ccxt.kraken):
                     name = c['name']
                     symbol = reply[-1]
                     market = self.markets_by_id[symbol]
-                    if name == 'ticker':
+                    if name == super().TICKER:
                         return self.parse_ticker(reply[1], market)
-                    elif name == 'trades':
+                    elif name == super().TRADES:
                         return self.parse_trades(reply[1], market)
-                    elif name == 'order_book':
+                    elif name == super().ORDER_BOOK:
                         return self.parse_order_book(reply[1], market)
-                    elif name == 'ohlcv':
+                    elif name == super().OHLCVS:
                         return self.parse_ohlcvs(reply[1], market)
                     else:
                         raise UnknownResponse(reply)
@@ -164,7 +164,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         timestamp = self.milliseconds()
         if baseVolume is not None and vwap is not None:
             quoteVolume = baseVolume * vwap
-        return 'ticker', {
+        return super().TICKER, {
             'info': ticker,
             'symbol': symbol,
             'timestamp': timestamp,
@@ -211,7 +211,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
                 'cost': price * amount,
                 'fee': None
             })
-        return 'trades', result
+        return super().TRADES, result
 
     # Override ccxt.Exchange.safe_integer. Kraken's websocket stream sends timestamps as floats.
     # This is particularly important for parse_order_book_.
@@ -240,11 +240,11 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         })
         self.order_book[symbol]['bids'] = sorted(self.order_book[symbol]['bids'], key=lambda l: l[0], reverse=True)
         self.order_book[symbol]['asks'] = sorted(self.order_book[symbol]['asks'], key=lambda l: l[0])
-        return 'order_book', {symbol: self.order_book[symbol]}
+        return super().ORDER_BOOK, {symbol: self.order_book[symbol]}
 
     def parse_ohlcvs(self, ohlcvs, market):
         symbol = market['symbol']
         if not isinstance(ohlcvs[0], list):
             ohlcvs = [ohlcvs]
-        return 'ohlcvs', {symbol: [[i[1], float(i[2]), float(i[3]), float(i[4]), float(i[5]), float(i[6])]
-                          for i in ohlcvs]}
+        return super().OHLCVS, {symbol: [[i[1], float(i[2]), float(i[3]), float(i[4]), float(i[5]), float(i[6])]
+                                for i in ohlcvs]}

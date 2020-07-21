@@ -11,19 +11,19 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         super(ccxt.coinbasepro, self).__init__(params)
         self.channels = {
             'public': {
-                'ticker': {
+                super().TICKER: {
                     'ex_name': 'ticker',
                     'has': True
                 },
-                'trades': {
+                super().TRADES: {
                     'ex_name': 'matches',
                     'has': True
                 },
-                'order_book': {
+                super().ORDER_BOOK: {
                     'ex_name': 'level2',
                     'has': True
                 },
-                'ohlcvs': {
+                super().OHLCVS: {
                     'ex_name': '',
                     'has': False
                 }
@@ -70,15 +70,15 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         }
 
     async def subscribe_ticker(self, symbols, params={}):
-        requests = self.build_requests(symbols, 'ticker')
+        requests = self.build_requests(symbols, super().TICKER)
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_trades(self, symbols, params={}):
-        requests = self.build_requests(symbols, 'trades')
+        requests = self.build_requests(symbols, super().TRADES)
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_order_book(self, symbols, params={}):
-        requests = self.build_requests(symbols, 'order_book')
+        requests = self.build_requests(symbols, super().ORDER_BOOK)
         await self.subscription_handler(requests, public=True)
 
     def parse_reply(self, reply, websocket, public):
@@ -144,10 +144,10 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         raise BaseError(err + "\n" + reason)
 
     def parse_ticker(self, ticker, market):
-        return 'ticker', super().parse_ticker(ticker, market)
+        return super().TICKER, super().parse_ticker(ticker, market)
 
     def parse_trades(self, trade, market):
-        return 'trades', [super().parse_trade(trade, market=market)]
+        return super().TRADES, [super().parse_trade(trade, market=market)]
 
     def parse_order_book(self, order_book, market):
         symbol = market['symbol']
@@ -176,4 +176,4 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         })
         self.order_book[symbol]['bids'] = sorted(self.order_book[symbol]['bids'], key=lambda l: l[0], reverse=True)
         self.order_book[symbol]['asks'] = sorted(self.order_book[symbol]['asks'], key=lambda l: l[0])
-        return 'order_book', {symbol: self.order_book[symbol]}
+        return super().ORDER_BOOK, {symbol: self.order_book[symbol]}
