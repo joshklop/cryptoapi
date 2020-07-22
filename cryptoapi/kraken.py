@@ -94,7 +94,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             else:
                 raise UnknownResponse(reply)
         elif isinstance(reply, list):
-            for c in super().get_channels(self.connections):
+            for c in self.connections[websocket]:
                 if c['ex_channel_id'] == reply[0]:
                     name = c['name']
                     symbol = reply[-1]

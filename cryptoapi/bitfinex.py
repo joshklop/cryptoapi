@@ -105,8 +105,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
                 raise UnknownResponse(reply)
         elif isinstance(reply, list):
             channel_id = reply[0]
-            # TODO sort self.connections by channel ids and do a binary search
-            for c in super().get_channels(self.connections):
+            for c in self.connections[websocket]:
                 if c['ex_channel_id'] == channel_id:
                     name = c['name']
                     symbol = c['symbol']
