@@ -77,22 +77,16 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         await self.subscription_handler(requests, public=True)
 
     def parse_reply(self, reply, websocket):
-        event = reply['event']
         if isinstance(reply, dict):
-            if event in ['subscriptionStatus', 'systemStatus']:
-                status = reply['status']
-                if status == 'subscribed':
-                    return self.parse_subscribed(reply, websocket)
-                elif status == 'unsubscribed':
-                    return self.parse_unsubscribed(reply)
-                elif status == 'error':
-                    return self.parse_error(reply)
-                else:
-                    return self.parse_other(reply)
-            elif event == 'heartbeat':
-                return
+            status = reply['status']
+            if status == 'subscribed':
+                return self.parse_subscribed(reply, websocket)
+            elif status == 'unsubscribed':
+                return self.parse_unsubscribed(reply)
+            elif status == 'error':
+                return self.parse_error(reply)
             else:
-                raise UnknownResponse(reply)
+                return self.parse_other(reply)
         elif isinstance(reply, list):
             for c in self.connections[websocket]:
                 if c['ex_channel_id'] == reply[0]:

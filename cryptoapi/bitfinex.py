@@ -101,10 +101,8 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
                 return self.parse_unsubscribed(reply)
             elif event == 'error':
                 return self.parse_error(reply)
-            elif event == 'info':
+            else event == 'info':
                 return self.parse_other(reply)
-            else:
-                raise UnknownResponse(reply)
         elif isinstance(reply, list):
             channel_id = reply[0]
             for c in self.connections[websocket]:
