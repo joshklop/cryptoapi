@@ -99,8 +99,10 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
                 return self.parse_subscribed(reply, websocket)
             elif event == 'unsubscribed':
                 return self.parse_unsubscribed(reply)
-            elif event in ['info', 'error']:  # TODO info should go to different function
+            elif event == 'error':
                 return self.parse_error(reply)
+            elif event == 'info':
+                return self.parse_other(reply)
             else:
                 raise UnknownResponse(reply)
         elif isinstance(reply, list):

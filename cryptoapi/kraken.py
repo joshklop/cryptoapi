@@ -88,7 +88,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
                 elif status == 'error':
                     return self.parse_error(reply)
                 else:
-                    return
+                    return self.parse_other(reply)
             elif event == 'heartbeat':
                 return
             else:
