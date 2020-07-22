@@ -17,42 +17,34 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
     def __init__(self, params={}):
         super(exchange.Exchange, self).__init__(params)
         self.channels = {
-            'public': {
-                super().TICKER: {
-                    'ex_name': 'ticker',
-                    'has': True
-                },
-                super().TRADES: {
-                    'ex_name': 'trades',
-                    'has': True
-                },
-                super().ORDER_BOOK: {
-                    'ex_name': 'book',
-                    'has': True
-                },
-                super().OHLCVS: {
-                    'ex_name': 'candles',
-                    'has': True
-                }
+            super().TICKER: {
+                'ex_name': 'ticker',
+                'has': True
             },
-            'private': {}
-        }
-        flat_channels = {
-            name: data
-            for _, v in self.channels.items()
-            for name, data in v.items()
+            super().TRADES: {
+                'ex_name': 'trades',
+                'has': True
+            },
+            super().ORDER_BOOK: {
+                'ex_name': 'book',
+                'has': True
+            },
+            super().OHLCVS: {
+                'ex_name': 'candles',
+                'has': True
+            }
         }
         self.channels_by_ex_name = {
             v['ex_name']: {
                 'name': symbol,
                 'has': v['has']
             }
-            for symbol, v in flat_channels.items()
+            for symbol, v in self.channels.items()
         }
         self.max_channels = 25  # Maximum number of channels per connection.
         self.max_connections = {'public': (20, 60000), 'private': (5, 15000)}
-        self.connections = {'public': {}, 'private': {}}
-        self.pending_channels = {'public': {}, 'private': {}}
+        self.connections = {}
+        self.pending_channels = {}
         self.result = asyncio.Queue(maxsize=1)
         self.ws_endpoint = {
             'public': 'wss://api-pub.bitfinex.com/ws/2',
@@ -68,7 +60,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
 
     def build_requests(self, symbols, name, params={}):
         ids = [self.markets[s]['id'] for s in symbols]
-        ex_name = self.channels['public'][name]['ex_name']
+        ex_name = self.channels[name]['ex_name']
         return [
             {'event': 'subscribe',
              'channel': ex_name,
@@ -100,11 +92,11 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         requests = self.build_requests(symbols, super().OHLCVS, params)
         await self.subscription_handler(requests, public=True)
 
-    def parse_reply(self, reply, websocket, public):
+    def parse_reply(self, reply, websocket):
         event = reply['event']
         if isinstance(reply, dict):
             if event == 'subscribed':
-                return self.parse_subscribed(reply, websocket, public)
+                return self.parse_subscribed(reply, websocket)
             elif event == 'unsubscribed':
                 return self.parse_unsubscribed(reply)
             elif event in ['info', 'error']:  # TODO info should go to different function
@@ -133,7 +125,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         else:
             raise UnknownResponse(reply)
 
-    def parse_subscribed(self, reply, websocket, public):
+    def parse_subscribed(self, reply, websocket):
         channel = {}
         ex_name = reply['channel']
         name = self.channels_by_ex_name[ex_name]['name']
@@ -173,7 +165,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
             }
             channel.update(result)
             channel['request'].update(result)
-        self.connection_metadata_handler(websocket, channel, public)
+        self.connection_metadata_handler(websocket, channel)
 
     def parse_unsubscribed(self, reply):
         for c in super().get_channels(self.connections):

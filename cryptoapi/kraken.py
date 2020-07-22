@@ -10,42 +10,34 @@ class Kraken(exchange.Exchange, ccxt.kraken):
     def __init__(self, params={}):
         super(ccxt.kraken, self).__init__(params)
         self.channels = {
-            'public': {
-                super().TICKER: {
-                    'ex_name': 'ticker',
-                    'has': True
-                },
-                super().TRADES: {
-                    'ex_name': 'trade',
-                    'has': True
-                },
-                super().ORDER_BOOK: {
-                    'ex_name': 'book',
-                    'has': True
-                },
-                super().OHLCVS: {
-                    'ex_name': 'ohlc',
-                    'has': True
-                }
+            super().TICKER: {
+                'ex_name': 'ticker',
+                'has': True
             },
-            'private': {}
-        }
-        flat_channels = {
-            name: data
-            for _, v in self.channels.items()
-            for name, data in v.items()
+            super().TRADES: {
+                'ex_name': 'trade',
+                'has': True
+            },
+            super().ORDER_BOOK: {
+                'ex_name': 'book',
+                'has': True
+            },
+            super().OHLCVS: {
+                'ex_name': 'ohlc',
+                'has': True
+            }
         }
         self.channels_by_ex_name = {
             v['ex_name']: {
                 'name': symbol,
                 'has': v['has']
             }
-            for symbol, v in flat_channels.items()
+            for symbol, v in self.connections.items()
         }
         self.max_channels = 45  # Maximum number of channels per connection. Kraken has a really complicated algorithm, but this is a safe bet.
         self.max_connections = {'public': (1000000, 60000), 'private': (0, 0)}
-        self.connections = {'public': {}, 'private': {}}
-        self.pending_channels = {'public': {}, 'private': {}}
+        self.connections = {}
+        self.pending_channels = {}
         self.result = asyncio.Queue(maxsize=1)
         self.ws_endpoint = {'public': 'wss://ws.kraken.com',
                             'private': ''}
@@ -53,7 +45,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
 
     def build_requests(self, symbols, name, params={}):
         ids = [self.markets[s]['id'] for s in symbols]
-        ex_name = self.channels['public'][name]['ex_name']
+        ex_name = self.channels[name]['ex_name']
         return [
             {'event': 'subscribe',
              'pair': [id],
@@ -84,13 +76,13 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         requests = self.build_requests(symbols, super().OHLCVS, params)
         await self.subscription_handler(requests, public=True)
 
-    def parse_reply(self, reply, websocket, public):
+    def parse_reply(self, reply, websocket):
         event = reply['event']
         if isinstance(reply, dict):
             if event in ['subscriptionStatus', 'systemStatus']:
                 status = reply['status']
                 if status == 'subscribed':
-                    return self.parse_subscribed(reply, websocket, public)
+                    return self.parse_subscribed(reply, websocket)
                 elif status == 'unsubscribed':
                     return self.parse_unsubscribed(reply)
                 elif status == 'error':
@@ -120,7 +112,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         else:
             raise UnknownResponse(reply)
 
-    def parse_subscribed(self, reply, websocket, public):
+    def parse_subscribed(self, reply, websocket):
         ex_channel_id = reply['channelID']
         ex_name = reply['subscription']['name']
         name = self.channels_by_ex_name[ex_name]['name']
@@ -138,7 +130,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             'ex_name': ex_name,
             'symbol': symbol
         }
-        self.connection_metadata_handler(websocket, channel, public)
+        self.connection_metadata_handler(websocket, channel)
 
     # TODO
     def parse_unsubscribed(self, reply):

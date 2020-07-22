@@ -10,42 +10,34 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
     def __init__(self, params={}):
         super(ccxt.coinbasepro, self).__init__(params)
         self.channels = {
-            'public': {
-                super().TICKER: {
-                    'ex_name': 'ticker',
-                    'has': True
-                },
-                super().TRADES: {
-                    'ex_name': 'matches',
-                    'has': True
-                },
-                super().ORDER_BOOK: {
-                    'ex_name': 'level2',
-                    'has': True
-                },
-                super().OHLCVS: {
-                    'ex_name': '',
-                    'has': False
-                }
+            super().TICKER: {
+                'ex_name': 'ticker',
+                'has': True
             },
-            'private': {}
-        }
-        flat_channels = {
-            name: data
-            for _, v in self.channels.items()
-            for name, data in v.items()
+            super().TRADES: {
+                'ex_name': 'matches',
+                'has': True
+            },
+            super().ORDER_BOOK: {
+                'ex_name': 'level2',
+                'has': True
+            },
+            super().OHLCVS: {
+                'ex_name': '',
+                'has': False
+            }
         }
         self.channels_by_ex_name = {
             v['ex_name']: {
                 'name': symbol,
                 'has': v['has']
             }
-            for symbol, v in flat_channels.items()
+            for symbol, v in self.channels.items()
         }
         self.max_channels = 1000000  # Maximum number of channels per connection. No limit for coinbasepro
         self.max_connections = {'public': (1, 4000), 'private': (0, 0)}
-        self.connections = {'public': {}, 'private': {}}
-        self.pending_channels = {'public': {}, 'private': {}}
+        self.connections = {}
+        self.pending_channels = {}
         self.result = asyncio.Queue(maxsize=1)
         self.ws_endpoint = {
             'public': 'wss://ws-feed.pro.coinbase.com',
@@ -55,7 +47,7 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
 
     def build_requests(self, symbols, name, params={}):
         ids = [self.markets[s]['id'] for s in symbols]
-        ex_name = self.channels['public'][name]['ex_name']
+        ex_name = self.channels[name]['ex_name']
         return [
             {'type': 'subscribe',
              'channels': [{'name': ex_name, 'product_ids': [id]}]}.update(params)
@@ -81,11 +73,11 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         requests = self.build_requests(symbols, super().ORDER_BOOK)
         await self.subscription_handler(requests, public=True)
 
-    def parse_reply(self, reply, websocket, public):
+    def parse_reply(self, reply, websocket):
         event = reply['type']
         # Administrative replies
         if event == 'subscriptions':
-            return self.parse_subscribed(reply, websocket, public)
+            return self.parse_subscribed(reply, websocket)
         elif event == 'unsubscribe':
             return self.parse_unsubscribed(reply)
         elif event == 'error':
@@ -102,7 +94,7 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         else:
             raise UnknownResponse(reply)
 
-    def parse_subscribed(self, reply, websocket, public):
+    def parse_subscribed(self, reply, websocket):
         ex_name = reply['channels'][0]['name']
         subed_ids = reply['channels'][0]['product_ids']  # List of subscribed markets
         subed_symbols = [
@@ -129,7 +121,7 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
             'symbol': symbol,
             'ex_channel_id': (ex_name, id)
         }
-        self.connection_metadata_handler(websocket, channel, public)
+        self.connection_metadata_handler(websocket, channel)
 
     def parse_unsubscribed(self, reply):
         for c in exchange.Exchange.get_channels(self.connections):
