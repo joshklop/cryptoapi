@@ -24,17 +24,6 @@ class Exchange(ccxt.Exchange):
         conn = self.connections['public'].copy() if public else self.connections['private'].copy()
         pending_channels = self.pending_channels['public'] if public else self.pending_channels['private']
         conn.update(pending_channels)
-        remaining = {
-            ws: self.max_channels - len(channels)
-            for ws, channels in conn.items()
-            if len(channels) < self.max_channels
-        }
-        tasks = []
-        # Throttle channels
-        if remaining:
-            for ws, slots in remaining.items():
-                await self.subscribe(ws, requests[:slots], public)
-                del requests[:slots]
         if public:
             conn = self.connections['public']
             max_conn = self.max_connections['public']
