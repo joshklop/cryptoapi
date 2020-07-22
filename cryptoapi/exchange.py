@@ -40,9 +40,9 @@ class Exchange(ccxt.Exchange):
                 start = time.time()
             websocket = await websockets.connect(endpoint)
             self.connections[websocket] = []  # Register websocket
-            await self.subscribe(websocket, requests[:self.max_channels], public)
+            await self.subscribe(websocket, requests[:self.max_channels])
             del requests[:self.max_channels]
-            tasks.append(asyncio.create_task(self.consumer_handler(websocket, public)))
+            tasks.append(asyncio.create_task(self.consumer_handler(websocket)))
             i += 1
         for t in tasks:
             await t
