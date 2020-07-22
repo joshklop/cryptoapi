@@ -82,9 +82,6 @@ class Exchange(ccxt.Exchange):
                     del self.pending_channels[websocket]
                 break
 
-    def parse_other(self, reply):
-        return {'other': reply}
-
     def claim_channel_id(self):
         channels = Exchange.get_channels(self.connections)
         if channels:
@@ -92,6 +89,10 @@ class Exchange(ccxt.Exchange):
             return max(channel_ids) + 1
         else:
             return 0
+
+    @staticmethod
+    def parse_other(reply):
+        return {'other': reply}
 
     @staticmethod
     def get_channels(connections):
