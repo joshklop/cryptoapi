@@ -76,12 +76,11 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         requests = self.build_requests(symbols, super().TRADES)
         await self.subscription_handler(requests, public=True)
 
-    async def subscribe_order_book(self, symbols, precision='P0',
-                                   frequency='F0', depth=100):
+    async def subscribe_order_book(self, symbols):
         params = {
-            'prec': precision,
-            'freq': frequency,
-            'len': depth
+            'prec': 'P0',
+            'freq': 'F0',
+            'len': 100
         }
         requests = self.build_requests(symbols, super().ORDER_BOOK, params)
         await self.subscription_handler(requests, public=True)
@@ -212,11 +211,9 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         trades = self.sort_by(trades, 1)  # Sort by timestamp
         return super().TRADES, [self.parse_trade(t, market=market) for t in trades]
 
-    def parse_order_book(self, orderbook, market, precision='R0'):
-        # Mostly taken from ccxt.bitfinex2.parse_order_book
-        # TODO find a way to use super().parse_order_book. There is a lot of repeated code here.
+    def parse_order_book(self, orderbook, market):
         symbol = market['symbol']
-        priceIndex = 1 if (precision == 'R0') else 0
+        priceIndex = 1
         if not isinstance(orderbook[0], list):
             orderbook = [orderbook]
         for i in range(0, len(orderbook)):
