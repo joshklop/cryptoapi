@@ -126,37 +126,17 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
 
     def parse_subscribed(self, reply, websocket):
         channel = {}
+        ex_channel_id = reply['chanId']
+        channel_id = self.claim_channel_id()
         ex_name = reply['channel']
         name = self.channels_by_ex_name[ex_name]['name']
         channel.update({
-            'request': {'event': 'subscribe', 'channel': ex_name}
-        })
-        channel.update({
-            'channel_id': self.claim_channel_id(),
-            'ex_channel_id': reply['chanId'],
+            'request': {'event': 'subscribe', 'channel': ex_name},
+            'channel_id': channel_id,
+            'ex_channel_id': ex_channel_id,
             'name': name
         })
-        if super().key_exists(reply, 'symbol'):
-            id = reply['symbol']
-            if super().key_exists(self.markets_by_id, id):
-                symbol = self.markets_by_id[id]['symbol']
-            else:
-                return
-            channel.update({'symbol': symbol})
-            channel['request'].update({'symbol': id})
-        elif super().key_exists(reply, 'key'):
-            key = reply['key']
-            _, timeframe, id = key.split(sep=':')[:3]
-            if super().key_exists(self.markets_by_id, id):
-                symbol = self.markets_by_id[id]['symbol']
-            else:
-                return
-            channel.update({
-                'symbol': symbol,
-                'timeframe': timeframe
-            })
-            channel['request'].update({'key': key})
-        if super().key_exists(reply, 'prec'):
+        if name == self.channels[super().ORDER_BOOK]['ex_name']:
             result = {
                 'prec': reply['prec'],
                 'freq': reply['freq'],
@@ -164,6 +144,20 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
             }
             channel.update(result)
             channel['request'].update(result)
+        else:
+            id = reply['symbol']
+            symbol = self.markets_by_id[id]['symbol']
+            channel.update({'symbol': symbol})
+            channel['request'].update({'symbol': id})
+            if name == self.channels[super().OHLCVS]['ex_name']:
+                key = reply['key']
+                _, timeframe, id = key.split(sep=':')[:3]
+                symbol = self.markets_by_id[id]['symbol']
+                channel.update({
+                    'symbol': symbol,
+                    'timeframe': timeframe
+                })
+                channel['request'].update({'key': key})
         self.connection_metadata_handler(websocket, channel)
 
     def parse_unsubscribed(self, reply):
