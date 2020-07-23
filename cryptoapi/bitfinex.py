@@ -116,14 +116,14 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
                     symbol = c['symbol']
                     market = self.markets[symbol]
                     if name == super().TICKER:
-                        return self.parse_ticker(reply, market)
+                        return self.parse_ticker(reply, websocket, market)
                     elif name == super().TRADES:
                         reply = reply[1] if isinstance(reply, list) else reply[2]
-                        return self.parse_trades(reply, market)
+                        return self.parse_trades(reply, websocket, market)
                     elif name == super().ORDER_BOOK:
-                        return self.parse_order_book(reply, market)
+                        return self.parse_order_book(reply, websocket, market)
                     elif name == super().OHLCVS:
-                        return self.parse_ohlcvs(reply, market)
+                        return self.parse_ohlcvs(reply, websocket, market)
                     else:
                         raise UnknownResponse(reply)
         else:

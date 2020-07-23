@@ -91,7 +91,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             event = reply[self.event]
             for parse, events in self.events.items():
                 if event in events:
-                    return parse(websocket, reply)
+                    return parse(reply, websocket)
         elif isinstance(reply, list):
             for c in self.connections[websocket]:
                 if c['ex_channel_id'] == reply[0]:
@@ -99,13 +99,13 @@ class Kraken(exchange.Exchange, ccxt.kraken):
                     symbol = reply[-1]
                     market = self.markets_by_id[symbol]
                     if name == super().TICKER:
-                        return self.parse_ticker(reply, market)
+                        return self.parse_ticker(reply, websocket, market)
                     elif name == super().TRADES:
-                        return self.parse_trades(reply, market)
+                        return self.parse_trades(reply, websocket, market)
                     elif name == super().ORDER_BOOK:
-                        return self.parse_order_book(reply, market)
+                        return self.parse_order_book(reply, websocket, market)
                     elif name == super().OHLCVS:
-                        return self.parse_ohlcvs(reply, market)
+                        return self.parse_ohlcvs(reply, websocket, market)
                     else:
                         raise UnknownResponse(reply)
         else:
