@@ -84,7 +84,7 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
         requests = self.build_requests(symbols, super().OHLCVS)
         await self.subscription_handler(requests, public=True)
 
-    def parse_subscribed(self, reply, websocket):
+    def parse_subscribed(self, reply, websocket, market=None):
         ex_name = list(reply.keys())[0]
         name = self.channels_by_ex_name[ex_name]['name']
         if name == super().OHLCVS:
@@ -106,20 +106,24 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
         self.connection_metadata_handler(websocket, channel)
 
     # TODO
-    def parse_unsubscribed(self, reply):
+    def parse_unsubscribed(self, reply, websocket, market=None):
         pass
 
-    def parse_error(self, reply):
-        pass  # Errors not defined in API documentation.
+    def parse_error(self, reply, websocket, market=None):
+        pass  # Errors are not defined in API documentation.
 
-    def parse_ticker(self, ticker, market):
+    def parse_ticker(self, reply, websocket, market=None):
+        ticker = reply
         return super().TICKER, super().parse_ticker(ticker, market)
 
-    def parse_trades(self, trade, market):
+    def parse_trades(self, reply, websocket, market=None):
+        trade = reply
         return super().TRADES, [super().parse_trade(trade, market)]
 
-    def parse_order_book(self, order_book, market):
+    def parse_order_book(self, reply, websocket, market=None):
+        order_book = reply
         return super().ORDER_BOOK, super().parse_order_book(order_book, market)
 
-    def parse_ohlcvs(self, ohlcvs, market):
+    def parse_ohlcvs(self, reply, websocket, market=None):
+        ohlcvs = reply
         return super().OHLCVS, super().parse_ohlcvs(ohlcvs, market)
