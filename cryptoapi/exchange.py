@@ -73,7 +73,7 @@ class Exchange(ccxt.Exchange):
 
     def connection_metadata_handler(self, websocket, channel):
         self.connections[websocket].append(channel)  # Register channel
-        # Clean pending_channels
+        # Clean self.pending_channels
         for ch in self.pending_channels[websocket]:
             if ch == channel['request']:
                 index = self.pending_channels[websocket].index(ch)
@@ -96,4 +96,4 @@ class Exchange(ccxt.Exchange):
 
     @staticmethod
     def get_channels(connections):
-        return [i for v in connections.values() for i in v] if connections else []
+        return [c for ws, c in connections.values()] if connections else []
