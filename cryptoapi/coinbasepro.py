@@ -43,6 +43,17 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
             'public': 'wss://ws-feed.pro.coinbase.com',
             'private': ''
         }
+        self.event = 'type'
+        self.events = {
+            self.parse_subscribed: ['subscriptions'],
+            self.parse_unsubscribed: ['unsubscribed'],
+            self.parse_error: ['error'],
+            self.parse_other: [],
+            self.parse_ticker: ['ticker'],
+            self.parse_trades: ['matches'],
+            self.parse_order_book: ['snapshot', 'level2'],
+            self.parse_ohlcvs: []
+        }
         self.order_book = {}
 
     def build_requests(self, symbols, name, params={}):
@@ -72,27 +83,6 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
     async def subscribe_order_book(self, symbols, params={}):
         requests = self.build_requests(symbols, super().ORDER_BOOK)
         await self.subscription_handler(requests, public=True)
-
-    def parse_reply(self, reply, websocket):
-        event = reply['type']
-        # Administrative replies
-        if event == 'subscriptions':
-            return self.parse_subscribed(reply, websocket)
-        elif event == 'unsubscribe':
-            return self.parse_unsubscribed(reply)
-        elif event == 'error':
-            return self.parse_error(reply)
-        # Market data replies
-        id = reply['product_id']
-        market = self.markets_by_id[id]
-        if event == 'ticker':
-            return self.parse_ticker(reply, market)
-        elif event in ['snapshot', 'l2update']:
-            return self.parse_order_book(reply, market)
-        elif event in ['matches', 'last_match']:
-            return self.parse_trades(reply, market)
-        else:
-            raise UnknownResponse(reply)
 
     def parse_subscribed(self, reply, websocket):
         ex_name = reply['channels'][0]['name']

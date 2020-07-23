@@ -41,6 +41,16 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         self.result = asyncio.Queue(maxsize=1)
         self.ws_endpoint = {'public': 'wss://ws.kraken.com',
                             'private': ''}
+        self.event = 'status'
+        self.events = {
+            self.parse_subscribed: ['subscribe'],
+            self.parse_unsubscribed: ['unsubscribe'],
+            self.parse_error: ['error'],
+            self.parse_other: [],
+            self.parse_ticker: [],
+            self.parse_trades: [],
+            self.parse_order_book: [],
+            self.parse_ohlcvs: []
         self.order_book = {}
 
     def build_requests(self, symbols, name, params={}):
@@ -78,15 +88,10 @@ class Kraken(exchange.Exchange, ccxt.kraken):
 
     def parse_reply(self, reply, websocket):
         if isinstance(reply, dict):
-            status = reply['status']
-            if status == 'subscribed':
-                return self.parse_subscribed(reply, websocket)
-            elif status == 'unsubscribed':
-                return self.parse_unsubscribed(reply)
-            elif status == 'error':
-                return self.parse_error(reply)
-            else:
-                return self.parse_other(reply)
+            event = reply[self.event]
+            for parse, events in self.events.items():
+                if event in events:
+                    return parse(websocket, reply)
         elif isinstance(reply, list):
             for c in self.connections[websocket]:
                 if c['ex_channel_id'] == reply[0]:

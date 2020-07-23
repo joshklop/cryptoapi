@@ -42,6 +42,17 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
             'public': 'wss://ws.bitvavo.com/v2/',
             'private': ''
         }
+        self.event = 'event'
+        self.events = {
+            self.parse_subscribed: ['subscriptions'],
+            self.parse_unsubscribed: ['unsubscribe'],
+            self.parse_error: [],
+            self.parse_other: [],
+            self.parse_ticker: ['ticker24h'],
+            self.parse_trades: ['trades'],
+            self.parse_order_book: ['book'],
+            self.parse_ohlcvs: ['candle']
+        }
         self.order_book = {}
 
     def build_requests(self, symbols, name, params={}):
@@ -72,29 +83,6 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
     async def subscribe_ohlcvs(self, symbols, params={}):
         requests = self.build_requests(symbols, super().OHLCVS)
         await self.subscription_handler(requests, public=True)
-
-    def parse_reply(self, reply, websocket):
-        event = reply['event']
-        # Administrative replies
-        if event == 'subscriptions':
-            return self.parse_subscribed(reply['subscriptions'], websocket)
-        elif event == 'unsubscribe':
-            return self.parse_unsubscribed(reply)
-        elif event == 'error':
-            return self.parse_error(reply)
-        # Market data replies
-        id = reply['data']['market']
-        market = self.markets_by_id[id]
-        if event == 'ticker24h':
-            return self.parse_ticker(reply['data'], market)
-        elif event == 'trades':
-            return self.parse_trades(reply, market)
-        elif event == 'book':
-            return self.parse_order_book(reply, market)
-        elif event == 'candle':
-            return self.parse_ohlcvs(reply['candle'], market)
-        else:
-            raise UnknownResponse(reply)
 
     def parse_subscribed(self, reply, websocket):
         ex_name = list(reply.keys())[0]

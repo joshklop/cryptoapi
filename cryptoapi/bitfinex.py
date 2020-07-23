@@ -50,6 +50,17 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
             'public': 'wss://api-pub.bitfinex.com/ws/2',
             'private': 'wss://api.bitfinex.com/ws/2'
         }
+        self.event = 'event'
+        self.events = {
+            self.parse_subscribed: ['subscribed'],
+            self.parse_unsubscribed: ['unsubscribed'],
+            self.parse_error: ['error'],
+            self.parse_other: ['info'],
+            self.parse_ticker: [],
+            self.parse_trades: [],
+            self.parse_order_book: [],
+            self.parse_ohlcvs: []
+        }
         self.order_book = {}
 
     async def build_unsubscribe_request(self, channel):
@@ -92,16 +103,11 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         await self.subscription_handler(requests, public=True)
 
     def parse_reply(self, reply, websocket):
-        event = reply['event']
         if isinstance(reply, dict):
-            if event == 'subscribed':
-                return self.parse_subscribed(reply, websocket)
-            elif event == 'unsubscribed':
-                return self.parse_unsubscribed(reply)
-            elif event == 'error':
-                return self.parse_error(reply)
-            else event == 'info':
-                return self.parse_other(reply)
+            event = reply['event']
+            for parse, events in self.events.items():
+                if event in events:
+                    return parse(websocket, reply)
         elif isinstance(reply, list):
             channel_id = reply[0]
             for c in self.connections[websocket]:

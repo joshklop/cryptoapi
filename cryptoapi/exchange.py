@@ -2,6 +2,7 @@ import time
 import asyncio
 import websockets
 import ccxt.async_support as ccxt
+from errors import UnknownResponse
 
 
 class Exchange(ccxt.Exchange):
@@ -81,6 +82,18 @@ class Exchange(ccxt.Exchange):
                 if not self.pending_channels[websocket]:
                     del self.pending_channels[websocket]
                 break
+
+    def market_from_reply(self, reply):
+        id = reply[self.id]
+        return self.markets_by_id[id]
+
+    def parse_reply(self, reply, websocket):
+        event = reply[self.event]
+        for parse, events in self.events.items():
+            if event in events:
+                market = self.market_from_reply(reply)
+                return parse(websocket, reply, market)
+        raise UnknownResponse(reply)
 
     def claim_channel_id(self):
         channels = Exchange.get_channels(self.connections)
