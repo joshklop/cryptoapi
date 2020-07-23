@@ -99,19 +99,19 @@ class Kraken(exchange.Exchange, ccxt.kraken):
                     symbol = reply[-1]
                     market = self.markets_by_id[symbol]
                     if name == super().TICKER:
-                        return self.parse_ticker(reply[1], market)
+                        return self.parse_ticker(reply, market)
                     elif name == super().TRADES:
-                        return self.parse_trades(reply[1], market)
+                        return self.parse_trades(reply, market)
                     elif name == super().ORDER_BOOK:
-                        return self.parse_order_book(reply[1], market)
+                        return self.parse_order_book(reply, market)
                     elif name == super().OHLCVS:
-                        return self.parse_ohlcvs(reply[1], market)
+                        return self.parse_ohlcvs(reply, market)
                     else:
                         raise UnknownResponse(reply)
         else:
             raise UnknownResponse(reply)
 
-    def parse_subscribed(self, reply, websocket):
+    def parse_subscribed(self, reply, websocket, market=None):
         ex_channel_id = reply['channelID']
         ex_name = reply['subscription']['name']
         name = self.channels_by_ex_name[ex_name]['name']
@@ -132,10 +132,10 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         self.connection_metadata_handler(websocket, channel)
 
     # TODO
-    def parse_unsubscribed(self, reply):
+    def parse_unsubscribed(self, reply, websocket, market=None):
         pass
 
-    def parse_error(self, reply):
+    def parse_error(self, reply, websocket, market=None):
         error_msg = reply['errorMessage']
         iso_format_msg = 'Currency pair not in ISO 4217-A3 format'
         if iso_format_msg in error_msg:
@@ -143,7 +143,8 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         else:
             raise BaseError(reply['errorMessage'])
 
-    def parse_ticker(self, ticker, market):
+    def parse_ticker(self, reply, websocket, market=None):
+        ticker = reply[1]
         symbol = market['symbol']
         open = float(ticker['o'][0])
         close = float(ticker['c'][0])
@@ -178,7 +179,8 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             'quoteVolume': quoteVolume
         }
 
-    def parse_trades(self, trades, market):
+    def parse_trades(self, reply, websocket, market=None):
+        trades = reply[1]
         timestamp = self.milliseconds()
         datetime = self.iso8601(timestamp)
         symbol = market['symbol']
@@ -210,7 +212,8 @@ class Kraken(exchange.Exchange, ccxt.kraken):
     def safe_integer(self, dictionary, key):
         return float(dictionary[key])
 
-    def parse_order_book(self, order_book, market):
+    def parse_order_book(self, reply, websocket, market=None):
+        order_book = reply[1]
         symbol = market['symbol']
         # Snapshot
         if super().key_exists(order_book, 'bs'):
@@ -233,7 +236,8 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         self.order_book[symbol]['asks'] = sorted(self.order_book[symbol]['asks'], key=lambda l: l[0])
         return super().ORDER_BOOK, {symbol: self.order_book[symbol]}
 
-    def parse_ohlcvs(self, ohlcvs, market):
+    def parse_ohlcvs(self, reply, websocket, market=None):
+        ohlcvs = reply[1]
         symbol = market['symbol']
         if not isinstance(ohlcvs[0], list):
             ohlcvs = [ohlcvs]

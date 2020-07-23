@@ -116,20 +116,20 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
                     symbol = c['symbol']
                     market = self.markets[symbol]
                     if name == super().TICKER:
-                        return self.parse_ticker(reply[1], market)
+                        return self.parse_ticker(reply, market)
                     elif name == super().TRADES:
-                        reply = reply[1] if isinstance(reply[1], list) else reply[2]
+                        reply = reply[1] if isinstance(reply, list) else reply[2]
                         return self.parse_trades(reply, market)
                     elif name == super().ORDER_BOOK:
-                        return self.parse_order_book(reply[1], market, c['prec'])
+                        return self.parse_order_book(reply, market)
                     elif name == super().OHLCVS:
-                        return self.parse_ohlcvs(reply[1], market)
+                        return self.parse_ohlcvs(reply, market)
                     else:
                         raise UnknownResponse(reply)
         else:
             raise UnknownResponse(reply)
 
-    def parse_subscribed(self, reply, websocket):
+    def parse_subscribed(self, reply, websocket, market=None):
         channel = {}
         ex_channel_id = reply['chanId']
         channel_id = self.claim_channel_id()
@@ -165,14 +165,14 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
                 channel['request'].update({'key': key})
         self.connection_metadata_handler(websocket, channel)
 
-    def parse_unsubscribed(self, reply):
+    def parse_unsubscribed(self, reply, websocket, market=None):
         for c in super().get_channels(self.connections):
             if c['ex_channel_id'] == reply['chanId']:
                 channel = c
                 del c  # Unregister the channel
                 return {'unsubscribed': channel['channel_id']}
 
-    def parse_error(self, reply):
+    def parse_error(self, reply, websocket, market=None):
         code = reply['code'] if self.key_exists(reply, 'code') else None
         if reply['event'] == 'error':
             if code == 10000:
@@ -208,22 +208,25 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         else:
             raise BaseError(reply['msg'])
 
-    def parse_ticker(self, ticker, market):
+    def parse_ticker(self, reply, websocket, market=None):
+        ticker = reply[1]
         return super().TICKER, self.parse_ticker(ticker, market)
 
-    def parse_trades(self, trades, market):
+    def parse_trades(self, reply, websocket, market=None):
+        trades = reply[1]
         if not isinstance(trades[0], list):
             trades = [trades]
         trades = self.sort_by(trades, 1)  # Sort by timestamp
         return super().TRADES, [self.parse_trade(t, market=market) for t in trades]
 
-    def parse_order_book(self, orderbook, market):
+    def parse_order_book(self, reply, websocket, market=None):
+        order_book = reply
         symbol = market['symbol']
         priceIndex = 1
-        if not isinstance(orderbook[0], list):
-            orderbook = [orderbook]
-        for i in range(0, len(orderbook)):
-            order = orderbook[i]
+        if not isinstance(order_book[0], list):
+            order_book = [order_book]
+        for i in range(0, len(order_book)):
+            order = order_book[i]
             price = order[priceIndex]
             side = 'bids' if (order[2] > 0) else 'asks'
             amount = abs(order[2])
@@ -238,7 +241,8 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         self.order_book[symbol]['asks'] = sorted(self.order_book[symbol]['asks'], key=lambda l: l[0])
         return super().ORDER_BOOK, {symbol: self.order_book[symbol]}
 
-    def parse_ohlcvs(self, ohlcvs, market):
+    def parse_ohlcvs(self, reply, websocket, market=None):
+        ohlcvs = reply[1]
         symbol = market['symbol']
         if not isinstance(ohlcvs[0], list):
             ohlcvs = [ohlcvs]

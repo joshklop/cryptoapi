@@ -104,7 +104,7 @@ class Exchange(ccxt.Exchange):
             return 0
 
     @staticmethod
-    def parse_other(reply):
+    def parse_other(reply, websocket, market=None):
         return {'other': reply}
 
     @staticmethod

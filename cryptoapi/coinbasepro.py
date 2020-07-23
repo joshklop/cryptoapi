@@ -84,7 +84,7 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         requests = self.build_requests(symbols, super().ORDER_BOOK)
         await self.subscription_handler(requests, public=True)
 
-    def parse_subscribed(self, reply, websocket):
+    def parse_subscribed(self, reply, websocket, market=None):
         ex_name = reply['channels'][0]['name']
         subed_ids = reply['channels'][0]['product_ids']  # List of subscribed markets
         subed_symbols = [
@@ -113,25 +113,28 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         }
         self.connection_metadata_handler(websocket, channel)
 
-    def parse_unsubscribed(self, reply):
+    def parse_unsubscribed(self, reply, websocket, market=None):
         for c in exchange.Exchange.get_channels(self.connections):
             if c['ex_channel_id'] == (reply['product_ids'], reply['channels']):
                 channel = c
                 del c  # Unregister the channel
                 return {'unsubscribed': channel['channel_id']}
 
-    def parse_error(self, reply):
+    def parse_error(self, reply, websocket, market=None):
         err = f"Error: {reply['message']}."
         reason = f"Reason: {reply['reason']}" if super().key_exists(reply, 'reason') else ''
         raise BaseError(err + "\n" + reason)
 
-    def parse_ticker(self, ticker, market):
+    def parse_ticker(self, reply, websocket, market=None):
+        ticker = reply
         return super().TICKER, super().parse_ticker(ticker, market)
 
-    def parse_trades(self, trade, market):
+    def parse_trades(self, reply, websocket, market=None):
+        trade = reply
         return super().TRADES, [super().parse_trade(trade, market=market)]
 
-    def parse_order_book(self, order_book, market):
+    def parse_order_book(self, reply, websocket, market=None):
+        order_book = reply
         symbol = market['symbol']
         if order_book['type'] == 'snapshot':
             order_book = super().parse_order_book(order_book)
