@@ -113,17 +113,13 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
         pass  # Errors are not defined in API documentation.
 
     def parse_ticker(self, reply, websocket, market=None):
-        ticker = reply
-        return super().TICKER, super().parse_ticker(ticker, market)
+        return super().TICKER, super().parse_ticker(reply, market)
 
     def parse_trades(self, reply, websocket, market=None):
-        trade = reply
-        return super().TRADES, [super().parse_trade(trade, market)]
+        return super().TRADES, [super().parse_trade(reply, market)]
 
     def parse_order_book(self, reply, websocket, market=None):
-        order_book = reply
-        return super().ORDER_BOOK, super().parse_order_book(order_book, market)
+        return super().ORDER_BOOK, super().parse_order_book(reply, market)
 
     def parse_ohlcvs(self, reply, websocket, market=None):
-        ohlcvs = reply
-        return super().OHLCVS, super().parse_ohlcvs(ohlcvs, market)
+        return super().OHLCVS, super().parse_ohlcvs(reply, market)

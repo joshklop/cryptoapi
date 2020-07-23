@@ -145,7 +145,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
 
     def parse_ticker(self, reply, websocket, market=None):
         ticker = reply[1]
-        symbol = market['symbol']
+        symbol = market['symbol'] if market else None
         open = float(ticker['o'][0])
         close = float(ticker['c'][0])
         last = float(close)

@@ -151,18 +151,18 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
             channel['request'].update(result)
         else:
             id = reply['symbol']
+            channel['request'].update({'symbol': id})
             symbol = self.markets_by_id[id]['symbol']
             channel.update({'symbol': symbol})
-            channel['request'].update({'symbol': id})
             if name == self.channels[super().OHLCVS]['ex_name']:
                 key = reply['key']
+                channel['request'].update({'key': key})
                 _, timeframe, id = key.split(sep=':')[:3]
                 symbol = self.markets_by_id[id]['symbol']
                 channel.update({
                     'symbol': symbol,
                     'timeframe': timeframe
                 })
-                channel['request'].update({'key': key})
         self.connection_metadata_handler(websocket, channel)
 
     def parse_unsubscribed(self, reply, websocket, market=None):
@@ -210,7 +210,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
 
     def parse_ticker(self, reply, websocket, market=None):
         ticker = reply[1]
-        return super().TICKER, self.parse_ticker(ticker, market)
+        return super().TICKER, super().parse_ticker(ticker, market)
 
     def parse_trades(self, reply, websocket, market=None):
         trades = reply[1]
@@ -220,7 +220,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         return super().TRADES, [self.parse_trade(t, market=market) for t in trades]
 
     def parse_order_book(self, reply, websocket, market=None):
-        order_book = reply
+        order_book = reply[1]
         symbol = market['symbol']
         priceIndex = 1
         if not isinstance(order_book[0], list):
