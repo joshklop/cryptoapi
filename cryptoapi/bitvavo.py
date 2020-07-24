@@ -33,7 +33,7 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
             }
             for symbol, v in self.channels.items()
         }
-        self.max_channels = 1000000  # Maximum number of channels per connection. No limit for coinbasepro
+        self.max_channels = 1000000  # Maximum number of channels per connection. No limit for bitvavo
         self.max_connections = {'public': (1, 1000000), 'private': (0, 0)}
         self.connections = {}
         self.pending_channels = {}
