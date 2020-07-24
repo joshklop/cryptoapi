@@ -67,14 +67,6 @@ class Kraken(exchange.Exchange, ccxt.kraken):
     async def build_unsubscribe_request(self, channel):
         pass
 
-    async def subscribe_ticker(self, symbols):
-        requests = self.build_requests(symbols, super().TICKER)
-        await self.subscription_handler(requests, public=True)
-
-    async def subscribe_trades(self, symbols):
-        requests = self.build_requests(symbols, super().TRADES)
-        await self.subscription_handler(requests, public=True)
-
     async def subscribe_order_book(self, symbols, depth=100):
         params = {'depth': 100}
         requests = self.build_requests(symbols, super().ORDER_BOOK, params)

@@ -79,14 +79,6 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
             for id in ids
         ]
 
-    async def subscribe_ticker(self, symbols):
-        requests = self.build_requests(symbols, super().TICKER)
-        await self.subscription_handler(requests, public=True)
-
-    async def subscribe_trades(self, symbols):
-        requests = self.build_requests(symbols, super().TRADES)
-        await self.subscription_handler(requests, public=True)
-
     async def subscribe_order_book(self, symbols):
         params = {
             'prec': 'P0',

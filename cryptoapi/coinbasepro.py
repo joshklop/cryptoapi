@@ -72,18 +72,6 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
             'channels': [channel['ex_channel_id'][1]]
         }
 
-    async def subscribe_ticker(self, symbols, params={}):
-        requests = self.build_requests(symbols, super().TICKER)
-        await self.subscription_handler(requests, public=True)
-
-    async def subscribe_trades(self, symbols, params={}):
-        requests = self.build_requests(symbols, super().TRADES)
-        await self.subscription_handler(requests, public=True)
-
-    async def subscribe_order_book(self, symbols, params={}):
-        requests = self.build_requests(symbols, super().ORDER_BOOK)
-        await self.subscription_handler(requests, public=True)
-
     def parse_subscribed(self, reply, websocket, market=None):
         ex_name = reply['channels'][0]['name']
         subed_ids = reply['channels'][0]['product_ids']  # List of subscribed markets

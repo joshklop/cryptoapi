@@ -58,6 +58,22 @@ class Exchange(ccxt.Exchange):
             if parsed_reply:
                 await self.result.put(parsed_reply)
 
+    async def subscribe_ticker(self, symbols, params={}):
+        requests = self.build_requests(symbols, super().TICKER)
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_trades(self, symbols, params={}):
+        requests = self.build_requests(symbols, super().TRADES)
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_order_book(self, symbols, params={}):
+        requests = self.build_requests(symbols, super().ORDER_BOOK)
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_ohlcvs(self, symbols, params={}):
+        requests = self.build_requests(symbols, super().OHLCVS)
+        await self.subscription_handler(requests, public=True)
+
     # Warning: untested! Not recommended for use. Kind of pointless anyway.
     # Will not work.
     async def unsubscribe(self, channel_ids):
