@@ -65,7 +65,7 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
             for id in ids
         ]
 
-    async def build_unsubscribe_request(self, channel):
+    def build_unsubscribe_request(self, channel):
         return {
             'type': 'unsubscribe',
             'product_ids': channel['ex_channel_id'][0],
