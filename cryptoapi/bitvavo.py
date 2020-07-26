@@ -42,9 +42,8 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
             for id in ids
         ]
 
-    # TODO
-    async def build_unsubscribe_request(self, channel):
-        pass
+    def ex_channel_id_from_reply(self, reply):
+        return (reply['event'], reply['market'])
 
     def parse_subscribed(self, reply, websocket, market=None):
         ex_name = list(reply.keys())[0]

@@ -61,30 +61,8 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         requests = self.build_requests(symbols, super().OHLCVS, params)
         await self.subscription_handler(requests, public=True)
 
-    def parse_reply(self, reply, websocket):
-        if isinstance(reply, dict):
-            event = reply[self.event]
-            for parse, events in self.events.items():
-                if event in events:
-                    return parse(reply, websocket)
-        elif isinstance(reply, list):
-            for c in self.connections[websocket]:
-                if c['ex_channel_id'] == reply[0]:
-                    name = c['name']
-                    symbol = reply[-1]
-                    market = self.markets_by_id[symbol]
-                    if name == super().TICKER:
-                        return self.parse_ticker(reply, websocket, market)
-                    elif name == super().TRADES:
-                        return self.parse_trades(reply, websocket, market)
-                    elif name == super().ORDER_BOOK:
-                        return self.parse_order_book(reply, websocket, market)
-                    elif name == super().OHLCVS:
-                        return self.parse_ohlcvs(reply, websocket, market)
-                    else:
-                        raise UnknownResponse(reply)
-        else:
-            raise UnknownResponse(reply)
+    def ex_channel_id_from_reply(self, reply, websocket):
+        return reply[0]
 
     def parse_subscribed(self, reply, websocket, market=None):
         ex_channel_id = reply['channelID']

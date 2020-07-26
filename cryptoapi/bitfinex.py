@@ -59,39 +59,20 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
             'freq': 'F0',
             'len': 100
         }
-        requests = self.build_requests(symbols, super().ORDER_BOOK, params)
+        requests = self.build_requests(symbols, self.ORDER_BOOK, params)
         await self.subscription_handler(requests, public=True)
 
     async def subscribe_ohlcvs(self, symbols, timeframe='1m'):
         ex_timeframe = self.timeframes[timeframe]
         params = {'key': 'trade:' + ex_timeframe + ':' + id}
-        requests = self.build_requests(symbols, super().OHLCVS, params)
+        requests = self.build_requests(symbols, self.OHLCVS, params)
         await self.subscription_handler(requests, public=True)
 
-    def parse_reply(self, reply, websocket):
+    def ex_channel_id_from_reply(self, reply):
         if isinstance(reply, dict):
-            event = reply['event']
-            for parse, events in self.events.items():
-                if event in events:
-                    return parse(websocket, reply)
+            return reply['chanId']
         elif isinstance(reply, list):
-            channel_id = reply[0]
-            for c in self.connections[websocket]:
-                if c['ex_channel_id'] == channel_id:
-                    name = c['name']
-                    symbol = c['symbol']
-                    market = self.markets[symbol]
-                    if name == super().TICKER:
-                        return self.parse_ticker(reply, websocket, market)
-                    elif name == super().TRADES:
-                        reply = reply[1] if isinstance(reply, list) else reply[2]
-                        return self.parse_trades(reply, websocket, market)
-                    elif name == super().ORDER_BOOK:
-                        return self.parse_order_book(reply, websocket, market)
-                    elif name == super().OHLCVS:
-                        return self.parse_ohlcvs(reply, websocket, market)
-                    else:
-                        raise UnknownResponse(reply)
+            return reply[0]
         else:
             raise UnknownResponse(reply)
 

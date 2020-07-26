@@ -39,12 +39,8 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
             for id in ids
         ]
 
-    def build_unsubscribe_request(self, channel):
-        return {
-            'type': 'unsubscribe',
-            'product_ids': channel['ex_channel_id'][0],
-            'channels': [channel['ex_channel_id'][1]]
-        }
+    def ex_channel_id_from_reply(self, reply):
+        return (reply['type'], reply['product_id'])
 
     def parse_subscribed(self, reply, websocket, market=None):
         ex_name = reply['channels'][0]['name']
