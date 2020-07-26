@@ -85,17 +85,17 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
 
     def parse_ticker(self, reply, websocket, market=None):
         ticker = reply
-        return super().TICKER, super().parse_ticker(ticker, market)
+        return self.TICKER, super().parse_ticker(ticker, market)
 
     def parse_trades(self, reply, websocket, market=None):
         trade = reply
-        return super().TRADES, [super().parse_trade(trade, market=market)]
+        return self.TRADES, [super().parse_trade(trade, market=market)]
 
     def parse_order_book(self, reply, websocket, market=None):
         order_book = reply
         symbol = market['symbol']
         if order_book['type'] == 'snapshot':
-            order_book = super().parse_order_book(order_book)
+            order_book = super(ccxt.coinbasepro, self).parse_order_book(order_book)
             self.order_book[symbol] = {'bids': order_book['bids'], 'asks': order_book['asks']}
         else:
             for change in order_book['changes']:
@@ -119,4 +119,4 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         })
         self.order_book[symbol]['bids'] = sorted(self.order_book[symbol]['bids'], key=lambda l: l[0], reverse=True)
         self.order_book[symbol]['asks'] = sorted(self.order_book[symbol]['asks'], key=lambda l: l[0])
-        return super().ORDER_BOOK, {symbol: self.order_book[symbol]}
+        return self.ORDER_BOOK, {symbol: self.order_book[symbol]}

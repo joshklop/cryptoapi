@@ -48,7 +48,7 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
     def parse_subscribed(self, reply, websocket, market=None):
         ex_name = list(reply.keys())[0]
         name = self.channels_by_ex_name[ex_name]['name']
-        if name == super().OHLCVS:
+        if name == self.OHLCVS:
             ex_timeframe = reply[ex_name]
             timeframe = self.timeframes[ex_timeframe]
             params = {'interval': ex_timeframe}
@@ -74,13 +74,13 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
         pass  # Errors are not defined in API documentation.
 
     def parse_ticker(self, reply, websocket, market=None):
-        return super().TICKER, super().parse_ticker(reply, market)
+        return self.TICKER, super().parse_ticker(reply, market)
 
     def parse_trades(self, reply, websocket, market=None):
-        return super().TRADES, [super().parse_trade(reply, market)]
+        return self.TRADES, [super().parse_trade(reply, market)]
 
     def parse_order_book(self, reply, websocket, market=None):
-        return super().ORDER_BOOK, super().parse_order_book(reply, market)
+        return self.ORDER_BOOK, super().parse_order_book(reply, market)
 
     def parse_ohlcvs(self, reply, websocket, market=None):
-        return super().OHLCVS, super().parse_ohlcvs(reply, market)
+        return self.OHLCVS, super().parse_ohlcvs(reply, market)

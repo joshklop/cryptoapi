@@ -121,19 +121,8 @@ class Exchange():
         requests = self.build_requests(symbols, super().OHLCVS)
         await self.subscription_handler(requests, public=True)
 
-    # Warning: untested! Not recommended for use. Kind of pointless anyway.
-    # Will not work.
-    async def unsubscribe(self, channel_ids):
-        # Filter connections
-        connections = self.public_connections.copy()
-        connections.update(self.private_connections.copy())
-        unsubscribe = {ws: [chan
-                            for chan in v
-                            if chan['channel_id'] in channel_ids]
-                       for ws, v in connections.items()}
-        for ws, v in unsubscribe.items():
-            requests = [self.build_unsubscribe_request(i) for i in v]
-            await self.send(ws, requests)
+    def parse_other(self, reply, websocket, market=None):
+        return {'other': reply}
 
     def connection_metadata_handler(self, websocket, channel):
         self.connections[websocket].append(channel)  # Register channel
@@ -166,10 +155,18 @@ class Exchange():
         else:
             return 0
 
-    @staticmethod
-    def parse_other(reply, websocket, market=None):
-        return {'other': reply}
+    def channels_by_ex_name(self):
+        return {
+            v['ex_name']: {
+                'name': name,
+                'has': v['has'],
+                'parse': v['parse']
+            }
+            for name, v in self.channels.items()
+        }
 
-    @staticmethod
-    def get_channels(connections):
-        return [c for ws, c in connections.values()] if connections else []
+    def get_channels(self):
+        return [c for ws, c in self.connections.values()] if self.connections else []
+
+    def get_pending_channels(self):
+        return [c for ws, c in self.pending_connections.values()] if self.pending_connections else []
