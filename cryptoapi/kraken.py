@@ -51,13 +51,13 @@ class Kraken(exchange.Exchange, ccxt.kraken):
     async def subscribe_order_book(self, symbols, depth=100):
         params = {'depth': 100}
         requests = self.build_requests(symbols, self.ORDER_BOOK, params)
-        await self.subscription_handler(requests, public=True)
+        await self.subscribe(requests, public=True)
 
     async def subscribe_ohlcvs(self, symbols, timeframe='1m'):
         ex_timeframe = self.timeframes[timeframe]
         params = {'interval': ex_timeframe}
         requests = self.build_requests(symbols, self.OHLCVS, params)
-        await self.subscription_handler(requests, public=True)
+        await self.subscribe(requests, public=True)
 
     def ex_channel_id_from_reply(self, reply, websocket):
         return reply[0]

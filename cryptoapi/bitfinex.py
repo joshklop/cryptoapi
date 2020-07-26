@@ -64,13 +64,13 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
             'len': 100
         }
         requests = self.build_requests(symbols, self.ORDER_BOOK, params)
-        await self.subscription_handler(requests, public=True)
+        await self.subscribe(requests, public=True)
 
     async def subscribe_ohlcvs(self, symbols, timeframe='1m'):
         ex_timeframe = self.timeframes[timeframe]
         params = {'key': 'trade:' + ex_timeframe + ':' + id}
         requests = self.build_requests(symbols, self.OHLCVS, params)
-        await self.subscription_handler(requests, public=True)
+        await self.subscribe(requests, public=True)
 
     def ex_channel_id_from_reply(self, reply):
         if isinstance(reply, dict):
