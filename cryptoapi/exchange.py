@@ -72,7 +72,7 @@ class Exchange():
         await self.subscribe(requests, public=True)
 
     async def throttle(self, requests, public, subscribe_method):
-        def wrapper():
+        async def wrapper():
             if public:
                 rate_limit = self.max_connections['public']
                 endpoint = self.ws_endpoint['public']
@@ -86,7 +86,7 @@ class Exchange():
                     self.connections[websocket] = []  # Register websocket
                     await self.subscribe_method(websocket, requests[:self.max_channels])
                     del requests[:self.max_channels]
-                    tasks.append(asyncio.create_task(self.consumer_handler(websocket)))
+                    tasks.append(asyncio.create_task(self.consumer(websocket)))
             for t in tasks:
                 await t
         return wrapper
@@ -105,7 +105,7 @@ class Exchange():
         for t in tasks:
             await t
 
-    async def consumer_handler(self, websocket):
+    async def consumer(self, websocket):
         async for reply in websocket:
             parsed_reply = self.parse_reply(super().unjson(reply), websocket)
             if parsed_reply:
