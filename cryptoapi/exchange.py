@@ -114,21 +114,18 @@ class Exchange():
             if parsed_reply:
                 await self.result.put(parsed_reply)
 
-    async def subscribe_ticker(self, symbols, params={}):
-        requests = self.build_requests(symbols, super().TICKER)
-        await self.subscription_handler(requests, public=True)
-
-    async def subscribe_trades(self, symbols, params={}):
-        requests = self.build_requests(symbols, super().TRADES)
-        await self.subscription_handler(requests, public=True)
-
-    async def subscribe_order_book(self, symbols, params={}):
-        requests = self.build_requests(symbols, super().ORDER_BOOK)
-        await self.subscription_handler(requests, public=True)
-
-    async def subscribe_ohlcvs(self, symbols, params={}):
-        requests = self.build_requests(symbols, super().OHLCVS)
-        await self.subscription_handler(requests, public=True)
+    def parse_reply(self, reply, websocket):
+        if reply[self.event] == self.subscribed:
+            return self.parse_subscribed(reply, websocket)
+        elif reply[self.event] in self.others:
+            return self.parse_other(reply)
+        ex_channel_id = self.ex_channel_id_from_reply(reply)
+        for c in self.connections[websocket]:
+            if c['ex_channel_id'] == ex_channel_id:
+                name = c['name']
+                parse = self.channels[name]['parse']
+                return parse(reply)
+        raise UnknownResponse(reply)
 
     def parse_other(self, reply, websocket, market=None):
         return {'other': reply}
