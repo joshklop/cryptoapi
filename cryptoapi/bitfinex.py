@@ -5,11 +5,11 @@ from ccxt.base.errors import BaseError
 from ccxt.base.errors import ExchangeError
 from ccxt.base.errors import NetworkError
 from ccxt.base.errors import OnMaintenance
-from websockets_api.errors import SubscribeError
-from websockets_api.errors import UnsubscribeError
-from websockets_api.errors import ChannelLimitExceeded
-from websockets_api.errors import Reconnect
-from websockets_api.errors import UnknownResponse
+from errors import SubscribeError
+from errors import UnsubscribeError
+from errors import ChannelLimitExceeded
+from errors import Reconnect
+from errors import UnknownResponse
 
 
 class Bitfinex(exchange.Exchange, ccxt.bitfinex2):

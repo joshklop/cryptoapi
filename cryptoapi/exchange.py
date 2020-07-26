@@ -1,7 +1,6 @@
 import time
 import asyncio
 import websockets
-import ccxt.async_support as ccxt
 from errors import UnknownResponse
 
 

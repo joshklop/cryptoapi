@@ -1,8 +1,6 @@
-import asyncio
 import ccxt.async_support as ccxt
 import exchange
 from ccxt.base.errors import BaseError
-from websockets_api.errors import UnknownResponse
 
 
 class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):

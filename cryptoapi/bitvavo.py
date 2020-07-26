@@ -1,7 +1,5 @@
-import asyncio
 import ccxt.async_support as ccxt
 import exchange
-from websockets_api.errors import UnknownResponse
 
 
 class Bitvavo(exchange.Exchange, ccxt.bitvavo):
