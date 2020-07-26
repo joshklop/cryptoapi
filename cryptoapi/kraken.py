@@ -46,10 +46,6 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             for id in ids
         ]
 
-    # TODO
-    async def build_unsubscribe_request(self, channel):
-        pass
-
     async def subscribe_order_book(self, symbols, depth=100):
         params = {'depth': 100}
         requests = self.build_requests(symbols, self.ORDER_BOOK, params)
@@ -83,10 +79,6 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             'symbol': symbol
         }
         self.connection_metadata_handler(websocket, channel)
-
-    # TODO
-    def parse_unsubscribed(self, reply, websocket, market=None):
-        pass
 
     def parse_error(self, reply, websocket, market=None):
         error_msg = reply['errorMessage']

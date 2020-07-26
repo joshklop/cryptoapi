@@ -71,13 +71,6 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         }
         self.connection_metadata_handler(websocket, channel)
 
-    def parse_unsubscribed(self, reply, websocket, market=None):
-        for c in exchange.Exchange.get_channels(self.connections):
-            if c['ex_channel_id'] == (reply['product_ids'], reply['channels']):
-                channel = c
-                del c  # Unregister the channel
-                return {'unsubscribed': channel['channel_id']}
-
     def parse_error(self, reply, websocket, market=None):
         err = f"Error: {reply['message']}."
         reason = f"Reason: {reply['reason']}" if super().key_exists(reply, 'reason') else ''

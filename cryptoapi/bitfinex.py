@@ -112,13 +112,6 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
                 })
         self.connection_metadata_handler(websocket, channel)
 
-    def parse_unsubscribed(self, reply, websocket, market=None):
-        for c in super().get_channels(self.connections):
-            if c['ex_channel_id'] == reply['chanId']:
-                channel = c
-                del c  # Unregister the channel
-                return {'unsubscribed': channel['channel_id']}
-
     def parse_error(self, reply, websocket, market=None):
         code = reply['code'] if self.key_exists(reply, 'code') else None
         if reply['event'] == 'error':

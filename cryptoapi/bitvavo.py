@@ -66,10 +66,6 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
         }
         self.connection_metadata_handler(websocket, channel)
 
-    # TODO
-    def parse_unsubscribed(self, reply, websocket, market=None):
-        pass
-
     def parse_error(self, reply, websocket, market=None):
         pass  # Errors are not defined in API documentation.
 
