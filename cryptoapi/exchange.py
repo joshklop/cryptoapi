@@ -99,6 +99,15 @@ class Exchange():
         self.pending_channels[websocket] = requests
         await self.send(websocket, requests)
 
+    async def send(self, websocket, requests):
+        requests = [super(Exchange, self).json(r) for r in requests]
+        tasks = [
+            asyncio.create_task(websocket.send(r))
+            for r in requests
+        ]
+        for t in tasks:
+            await t
+
     async def consumer_handler(self, websocket):
         async for reply in websocket:
             parsed_reply = self.parse_reply(super().unjson(reply), websocket)
