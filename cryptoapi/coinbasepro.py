@@ -7,52 +7,28 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
 
     def __init__(self, params={}):
         super(ccxt.coinbasepro, self).__init__(params)
-        self.channels = {
-            super().TICKER: {
-                'ex_name': 'ticker',
-                'has': True
-            },
-            super().TRADES: {
-                'ex_name': 'matches',
-                'has': True
-            },
-            super().ORDER_BOOK: {
-                'ex_name': 'level2',
-                'has': True
-            },
-            super().OHLCVS: {
-                'ex_name': '',
-                'has': False
-            }
-        }
-        self.channels_by_ex_name = {
-            v['ex_name']: {
-                'name': symbol,
-                'has': v['has']
-            }
-            for symbol, v in self.channels.items()
-        }
-        self.max_channels = 1000000  # Maximum number of channels per connection. No limit for coinbasepro
+        super(exchange.Exchange, self).__init__()
+        self.channels[self.TICKER]['ex_name'] = 'ticker'
+        self.channels[self.TRADES]['ex_name'] = 'matches'
+        self.channels[self.ORDER_BOOK]['ex_name'] = 'level2'
+        self.channels[self.TICKER]['has'] = True
+        self.channels[self.TRADES]['has'] = True
+        self.channels[self.ORDER_BOOK]['has'] = True
+        self.channels_by_ex_name = self.channels_by_ex_name()
+        # Maximum number of channels per connection.
+        # Unlimited if equal to 10 ** 5.
+        self.max_channels = 10 ** 5
+        # Number of connections that can be created per unit time,
+        #   where the unit of time is in milliseconds.
+        # Example: (1, 60000) --> one connection per minute
+        # Unlimited if equal to (10 ** 5, 60000).
         self.max_connections = {'public': (1, 4000), 'private': (0, 0)}
-        self.connections = {}
-        self.pending_channels = {}
-        self.result = asyncio.Queue(maxsize=1)
         self.ws_endpoint = {
             'public': 'wss://ws-feed.pro.coinbase.com',
             'private': ''
         }
         self.event = 'type'
-        self.events = {
-            self.parse_subscribed: ['subscriptions'],
-            self.parse_unsubscribed: ['unsubscribed'],
-            self.parse_error: ['error'],
-            self.parse_other: [],
-            self.parse_ticker: ['ticker'],
-            self.parse_trades: ['matches'],
-            self.parse_order_book: ['snapshot', 'level2'],
-            self.parse_ohlcvs: []
-        }
-        self.order_book = {}
+        self.subscribed = 'subscriptions'
 
     def build_requests(self, symbols, name, params={}):
         ids = [self.markets[s]['id'] for s in symbols]

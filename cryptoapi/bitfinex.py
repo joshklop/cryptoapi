@@ -15,59 +15,33 @@ from errors import UnknownResponse
 class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
 
     def __init__(self, params={}):
-        super(exchange.Exchange, self).__init__(params)
-        self.channels = {
-            super().TICKER: {
-                'ex_name': 'ticker',
-                'has': True
-            },
-            super().TRADES: {
-                'ex_name': 'trades',
-                'has': True
-            },
-            super().ORDER_BOOK: {
-                'ex_name': 'book',
-                'has': True
-            },
-            super().OHLCVS: {
-                'ex_name': 'candles',
-                'has': True
-            }
-        }
-        self.channels_by_ex_name = {
-            v['ex_name']: {
-                'name': symbol,
-                'has': v['has']
-            }
-            for symbol, v in self.channels.items()
-        }
-        self.max_channels = 25  # Maximum number of channels per connection.
+        super(ccxt.bitfinex2, self).__init__(params)
+        super(exchange.Exchange, self).__init__()
+        self.channels[self.TICKER]['ex_name'] = 'ticker'
+        self.channels[self.TRADES]['ex_name'] = 'trades'
+        self.channels[self.ORDER_BOOK]['ex_name'] = 'book'
+        self.channels[self.OHLCVS]['ex_name'] = 'candles'
+        self.channels[self.TICKER]['has'] = True
+        self.channels[self.TRADES]['has'] = True
+        self.channels[self.ORDER_BOOK]['has'] = True
+        self.channels[self.OHLCVS]['has'] = True
+        self.channels_by_ex_name = self.channels_by_ex_name()
+        # Maximum number of channels per connection.
+        # Unlimited if equal to 10 ** 5.
+        self.max_channels = 25
+        # Number of connections that can be created per unit time,
+        #   where the unit of time is in milliseconds.
+        # Example: (1, 60000) --> one connection per minute
+        # Unlimited if equal to (10 ** 5, 60000).
         self.max_connections = {'public': (20, 60000), 'private': (5, 15000)}
-        self.connections = {}
-        self.pending_channels = {}
-        self.result = asyncio.Queue(maxsize=1)
         self.ws_endpoint = {
             'public': 'wss://api-pub.bitfinex.com/ws/2',
             'private': 'wss://api.bitfinex.com/ws/2'
         }
         self.event = 'event'
-        self.events = {
-            self.parse_subscribed: ['subscribed'],
-            self.parse_unsubscribed: ['unsubscribed'],
-            self.parse_error: ['error'],
-            self.parse_other: ['info'],
-            self.parse_ticker: [],
-            self.parse_trades: [],
-            self.parse_order_book: [],
-            self.parse_ohlcvs: []
-        }
-        self.order_book = {}
-
-    async def build_unsubscribe_request(self, channel):
-        return {
-            'event': 'unsubscribe',
-            'chanId': channel['ex_channel_id']
-        }
+        self.subscribed = 'subscribed'
+        # All message events that are not unified.
+        self.others = ['info']
 
     def build_requests(self, symbols, name, params={}):
         ids = [self.markets[s]['id'] for s in symbols]

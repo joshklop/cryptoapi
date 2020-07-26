@@ -9,49 +9,32 @@ class Kraken(exchange.Exchange, ccxt.kraken):
 
     def __init__(self, params={}):
         super(ccxt.kraken, self).__init__(params)
-        self.channels = {
-            super().TICKER: {
-                'ex_name': 'ticker',
-                'has': True
-            },
-            super().TRADES: {
-                'ex_name': 'trade',
-                'has': True
-            },
-            super().ORDER_BOOK: {
-                'ex_name': 'book',
-                'has': True
-            },
-            super().OHLCVS: {
-                'ex_name': 'ohlc',
-                'has': True
-            }
+        super(exchange.Exchange, self).__init__()
+        self.channels[self.TICKER]['ex_name'] = 'ticker'
+        self.channels[self.TRADES]['ex_name'] = 'trade'
+        self.channels[self.ORDER_BOOK]['ex_name'] = 'book'
+        self.channels[self.OHLCVS]['ex_name'] = 'ohlc'
+        self.channels[self.TICKER]['has'] = True
+        self.channels[self.TRADES]['has'] = True
+        self.channels[self.ORDER_BOOK]['has'] = True
+        self.channels[self.OHLCVS]['has'] = True
+        self.channels_by_ex_name = self.channels_by_ex_name()
+        # Maximum number of channels per connection.
+        # Unlimited if equal to 10 ** 5.
+        self.max_channels = 45
+        # Number of connections that can be created per unit time,
+        #   where the unit of time is in milliseconds.
+        # Example: (1, 60000) --> one connection per minute
+        # Unlimited if equal to (10 ** 5, 60000).
+        self.max_connections = {'public': (10 ** 5, 60000), 'private': (0, 0)}
+        self.ws_endpoint = {
+            'public': 'wss://ws.kraken.com',
+            'private': ''
         }
-        self.channels_by_ex_name = {
-            v['ex_name']: {
-                'name': symbol,
-                'has': v['has']
-            }
-            for symbol, v in self.connections.items()
-        }
-        self.max_channels = 45  # Maximum number of channels per connection. Kraken has a really complicated algorithm, but this is a safe bet.
-        self.max_connections = {'public': (1000000, 60000), 'private': (0, 0)}
-        self.connections = {}
-        self.pending_channels = {}
-        self.result = asyncio.Queue(maxsize=1)
-        self.ws_endpoint = {'public': 'wss://ws.kraken.com',
-                            'private': ''}
-        self.event = 'status'
-        self.events = {
-            self.parse_subscribed: ['subscribe'],
-            self.parse_unsubscribed: ['unsubscribe'],
-            self.parse_error: ['error'],
-            self.parse_other: [],
-            self.parse_ticker: [],
-            self.parse_trades: [],
-            self.parse_order_book: [],
-            self.parse_ohlcvs: []
-        self.order_book = {}
+        self.event = 'event'
+        self.subscribed = 'subscribed'
+        # All message events that are not unified.
+        self.others = ['subscriptionStatus', 'systemStatus', 'heartbeat']
 
     def build_requests(self, symbols, name, params={}):
         ids = [self.markets[s]['id'] for s in symbols]

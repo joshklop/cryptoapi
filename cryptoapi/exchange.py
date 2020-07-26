@@ -4,21 +4,69 @@ import websockets
 from errors import UnknownResponse
 
 
-class Exchange(ccxt.Exchange):
+class Exchange():
 
     TICKER = 'ticker'
     TRADES = 'trades'
     ORDER_BOOK = 'order_book'
     OHLCVS = 'ohlcvs'
 
-    async def send(self, websocket, requests):
-        requests = [super(Exchange, self).json(r) for r in requests]
-        tasks = [
-            asyncio.create_task(websocket.send(r))
-            for r in requests
-        ]
-        for t in tasks:
-            await t
+    def __init__(self):
+        self.channels = {
+            self.TICKER: {
+                'ex_name': '',
+                'has': True,
+                'parse': self.parse_ticker
+            },
+            self.TRADES: {
+                'ex_name': '',
+                'has': True,
+                'parse': self.parse_trades
+            },
+            self.ORDER_BOOK: {
+                'ex_name': '',
+                'has': True,
+                'parse': self.parse_order_book
+            },
+            self.OHLCVS: {
+                'ex_name': '',
+                'has': True,
+                'parse': self.parse_ohlcvs
+            }
+        }
+        self.channels_by_ex_name = self.channels_by_ex_name()
+        self.max_channels = 0  # Maximum number of channels per connection.
+        # Number of connections that can be created per unit time,
+        #   where the unit of time is in milliseconds.
+        # Example: (1, 60000) --> one connection per minute
+        self.max_connections = {'public': (0, 0), 'private': (0, 0)}
+        self.connections = {}
+        self.pending_channels = {}
+        self.result = asyncio.Queue(maxsize=1)
+        self.ws_endpoint = {
+            'public': '',
+            'private': ''
+        }
+        self.event = ''
+        self.subscribed = ''
+        # All message events that are not unified.
+        self.others = []
+
+    async def subscribe_ticker(self, symbols, params={}):
+        requests = self.build_requests(symbols, self.TICKER)
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_trades(self, symbols, params={}):
+        requests = self.build_requests(symbols, self.TRADES)
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_order_book(self, symbols, params={}):
+        requests = self.build_requests(symbols, self.ORDER_BOOK)
+        await self.subscription_handler(requests, public=True)
+
+    async def subscribe_ohlcvs(self, symbols, params={}):
+        requests = self.build_requests(symbols, self.OHLCVS)
+        await self.subscription_handler(requests, public=True)
 
     async def subscription_handler(self, requests, public):
         if public:
