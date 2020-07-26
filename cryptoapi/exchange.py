@@ -15,22 +15,22 @@ class Exchange():
         self.channels = {
             self.TICKER: {
                 'ex_name': '',
-                'has': True,
+                'has': False,
                 'parse': self.parse_ticker
             },
             self.TRADES: {
                 'ex_name': '',
-                'has': True,
+                'has': False,
                 'parse': self.parse_trades
             },
             self.ORDER_BOOK: {
                 'ex_name': '',
-                'has': True,
+                'has': False,
                 'parse': self.parse_order_book
             },
             self.OHLCVS: {
                 'ex_name': '',
-                'has': True,
+                'has': False,
                 'parse': self.parse_ohlcvs
             }
         }
