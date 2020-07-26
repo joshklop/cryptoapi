@@ -1,6 +1,6 @@
-import time
 import asyncio
 import websockets
+from aiolimiter import AsyncLimiter
 from errors import UnknownResponse
 
 
@@ -38,8 +38,11 @@ class Exchange():
         self.max_channels = 0  # Maximum number of channels per connection.
         # Number of connections that can be created per unit time,
         #   where the unit of time is in milliseconds.
-        # Example: (1, 60000) --> one connection per minute
-        self.max_connections = {'public': (0, 0), 'private': (0, 0)}
+        # Example: AsyncLimiter(1, 60000 / 1000) --> one connection per minute
+        self.max_connections = {
+            'public': AsyncLimiter(0, 0 / 1000),
+            'private': AsyncLimiter(0, 0 / 1000)
+        }
         self.connections = {}
         self.pending_channels = {}
         self.result = asyncio.Queue(maxsize=1)
@@ -68,30 +71,21 @@ class Exchange():
         requests = self.build_requests(symbols, self.OHLCVS)
         await self.subscription_handler(requests, public=True)
 
-    async def subscription_handler(self, requests, public):
+    async def throttle_subscriptions(self, requests, public):
         if public:
-            max_conn = self.max_connections['public']
+            rate_limit = self.max_connections['public']
             endpoint = self.ws_endpoint['public']
         else:
-            max_conn = self.max_connections['private']
+            rate_limit = self.max_connections['private']
             endpoint = self.ws_endpoint['private']
         tasks = []
-        i = 0
-        start = time.time()
         while requests:
-            # Throttle connections.
-            if i == max_conn[0]:
-                wait = max_conn[1] - (time.time() - start)
-                if wait > 0:
-                    await asyncio.sleep(wait / 1000)
-                i = 0
-                start = time.time()
-            websocket = await websockets.connect(endpoint)
-            self.connections[websocket] = []  # Register websocket
-            await self.subscribe(websocket, requests[:self.max_channels])
-            del requests[:self.max_channels]
-            tasks.append(asyncio.create_task(self.consumer_handler(websocket)))
-            i += 1
+            async with rate_limit:
+                websocket = await websockets.connect(endpoint)
+                self.connections[websocket] = []  # Register websocket
+                await self.subscribe(websocket, requests[:self.max_channels])
+                del requests[:self.max_channels]
+                tasks.append(asyncio.create_task(self.consumer_handler(websocket)))
         for t in tasks:
             await t
 

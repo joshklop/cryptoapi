@@ -1,6 +1,7 @@
 import asyncio
 import ccxt.async_support as ccxt
 import exchange
+from aiolimiter import AsyncLimiter
 from ccxt.base.errors import BaseError
 from ccxt.base.errors import ExchangeError
 from ccxt.base.errors import NetworkError
@@ -31,9 +32,12 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         self.max_channels = 25
         # Number of connections that can be created per unit time,
         #   where the unit of time is in milliseconds.
-        # Example: (1, 60000) --> one connection per minute
+        # Example: AsyncLimiter(1, 60000 / 1000) --> one connection per minute
         # Unlimited if equal to (10 ** 5, 60000).
-        self.max_connections = {'public': (20, 60000), 'private': (5, 15000)}
+        self.max_connections = {
+            'public': AsyncLimiter(20, 60000 / 1000),
+            'private': AsyncLimiter(0, 0 / 1000)
+        }
         self.ws_endpoint = {
             'public': 'wss://api-pub.bitfinex.com/ws/2',
             'private': 'wss://api.bitfinex.com/ws/2'
