@@ -71,6 +71,9 @@ class Exchange():
         requests = self.build_requests(symbols, self.OHLCVS)
         await self.throttle_subscribe(requests, public=True)
 
+    def build_requests(self, symbols, channel):
+        return []
+
     async def throttle_subscribe(self, requests, public):
         if public:
             rate_limit = self.max_connections['public']
