@@ -136,7 +136,7 @@ class Exchange():
                 break
 
     def claim_channel_id(self):
-        channels = Exchange.get_channels(self.connections)
+        channels = self.get_channels()
         if channels:
             channel_ids = [c['channel_id'] for c in channels]
             return max(channel_ids) + 1
