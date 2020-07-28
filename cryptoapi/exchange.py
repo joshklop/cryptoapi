@@ -57,44 +57,40 @@ class Exchange():
 
     async def subscribe_ticker(self, symbols, params={}):
         requests = self.build_requests(symbols, self.TICKER)
-        await self.throttle_subscribe(requests, public=True)
+        await self.subscribe(requests, public=True)
 
     async def subscribe_trades(self, symbols, params={}):
         requests = self.build_requests(symbols, self.TRADES)
-        await self.throttle_subscribe(requests, public=True)
+        await self.subscribe(requests, public=True)
 
     async def subscribe_order_book(self, symbols, params={}):
         requests = self.build_requests(symbols, self.ORDER_BOOK)
-        await self.throttle_subscribe(requests, public=True)
+        await self.subscribe(requests, public=True)
 
     async def subscribe_ohlcvs(self, symbols, params={}):
         requests = self.build_requests(symbols, self.OHLCVS)
-        await self.throttle_subscribe(requests, public=True)
+        await self.subscribe(requests, public=True)
 
     def build_requests(self, symbols, channel):
         return []
 
-    async def throttle_subscribe(self, requests, public):
-        if public:
-            rate_limit = self.max_connections['public']
-            endpoint = self.ws_endpoint['public']
-        else:
-            rate_limit = self.max_connections['private']
-            endpoint = self.ws_endpoint['private']
-        tasks = []
-        while requests:
-            async with rate_limit:
-                websocket = await websockets.connect(endpoint)
-                self.connections[websocket] = []  # Register websocket
-                await self.subscribe(websocket, requests[:self.max_channels])
-                del requests[:self.max_channels]
-                tasks.append(asyncio.create_task(self.consumer(websocket)))
-        for t in tasks:
-            await t
+    async def throttle(self, throttled_method):
+        async def wrapper(requests, public):
+            rate_limit = self.max_connections['public'] if public else self.max_connections['private']
+            while requests:
+                async with rate_limit:
+                    await self.throttled_method()
+        return wrapper
 
-    async def subscribe(self, websocket, requests):
-        self.pending_channels[websocket] = requests
-        await self.send(websocket, requests)
+    @throttle
+    async def subscribe(self, requests, public):
+        endpoint = self.ws_endpoint['public'] if public else self.ws_endpoint['private']
+        websocket = await websockets.connect(endpoint)
+        self.connections[websocket] = []  # Register websocket
+        self.pending_channels[websocket] = requests[:self.max_channels]
+        await self.send(websocket, requests[:self.max_channels])
+        del requests[:self.max_channels]
+        await asyncio.create_task(self.consumer(websocket))
 
     async def send(self, websocket, requests):
         requests = [super(Exchange, self).json(r) for r in requests]
@@ -108,8 +104,7 @@ class Exchange():
     async def consumer(self, websocket):
         async for reply in websocket:
             parsed_reply = self.parse_reply(super().unjson(reply), websocket)
-            if parsed_reply:
-                await self.result.put(parsed_reply)
+            await self.result.put(parsed_reply)
 
     def parse_reply(self, reply, websocket):
         if reply[self.event] == self.subscribed:
