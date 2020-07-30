@@ -49,7 +49,7 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
     def ex_channel_id_from_reply(self, reply):
         return (reply['event'], reply['market'])
 
-    def parse_subscribed(self, reply, websocket, market=None):
+    def update_connections(self, reply, websocket):
         ex_name = list(reply.keys())[0]
         name = self.channels_by_ex_name[ex_name]['name']
         if name == self.OHLCVS:

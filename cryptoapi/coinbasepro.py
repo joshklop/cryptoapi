@@ -46,24 +46,21 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
     def ex_channel_id_from_reply(self, reply):
         return (reply['type'], reply['product_id'])
 
-    def parse_subscribed(self, reply, websocket, market=None):
+    def update_connections(self, reply, websocket):
         ex_name = reply['channels'][0]['name']
         subed_ids = reply['channels'][0]['product_ids']  # List of subscribed markets
         subed_symbols = [
-            c['symbol']
-            for _, v in self.connections.items()
-            for ws, channels in v.items()
-            for c in channels
-        ]  # List of subscribed and registered markets
+            channel['symbol']
+            for channel in self.get_channels()
+        ]  # Subscribed and registered symbols
         id, symbol = [
             (id, self.markets_by_id[id]['symbol'])
             for id in subed_ids
             if self.markets_by_id[id]['symbol'] not in subed_symbols
-        ][0]  # Find the only subed id that isn't registered yet
+        ].pop()  # Find the only subed id that isn't registered yet
         name = self.channels_by_ex_name[ex_name]['name']
         request = {
             'type': 'subscribe',
-            'product_ids': [id],
             'channels': [{'name': ex_name, 'product_ids': [id]}]
         }
         channel = {

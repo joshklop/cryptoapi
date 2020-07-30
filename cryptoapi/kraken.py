@@ -62,7 +62,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
     def ex_channel_id_from_reply(self, reply, websocket):
         return reply[0]
 
-    def parse_subscribed(self, reply, websocket, market=None):
+    def update_connections(self, reply, websocket, market=None):
         ex_channel_id = reply['channelID']
         ex_name = reply['subscription']['name']
         name = self.channels_by_ex_name[ex_name]['name']
@@ -80,6 +80,13 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             'ex_name': ex_name,
             'symbol': symbol
         }
+        if name == self.OHLCVS:
+            ex_timeframe = request['subscription']['interval']
+            ex_timeframes = {v: k for k, v in self.timeframes.items()}
+            timeframe = ex_timeframes[ex_timeframe]
+            channel.update({
+                'timeframe': timeframe
+            })
         self.connection_metadata_handler(websocket, channel)
 
     def parse_error(self, reply, websocket, market=None):

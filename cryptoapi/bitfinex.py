@@ -80,7 +80,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         else:
             raise UnknownResponse(reply)
 
-    def parse_subscribed(self, reply, websocket, market=None):
+    def update_connections(self, reply, websocket):
         channel = {}
         ex_channel_id = reply['chanId']
         channel_id = self.claim_channel_id()
@@ -92,28 +92,30 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
             'ex_channel_id': ex_channel_id,
             'name': name
         })
-        if name == self.channels[self.ORDER_BOOK]['ex_name']:
-            result = {
-                'prec': reply['prec'],
-                'freq': reply['freq'],
-                'len': int(reply['len'])
-            }
-            channel.update(result)
-            channel['request'].update(result)
+        if name == self.channels[self.OHLCVS]['ex_name']:
+            key = reply['key']
+            ex_timeframe, id = key.split(sep=':')[1:3]
+            ex_timeframes = {v: k for k, v in self.timeframes}
+            timeframe = ex_timeframes[ex_timeframe]
+            symbol = self.markets_by_id[id]['symbol']
+            channel['request'].update({'key': key})
+            channel.update({
+                'symbol': symbol,
+                'timeframe': timeframe
+            })
         else:
             id = reply['symbol']
-            channel['request'].update({'symbol': id})
             symbol = self.markets_by_id[id]['symbol']
+            channel['request'].update({'symbol': id})
             channel.update({'symbol': symbol})
-            if name == self.channels[self.OHLCVS]['ex_name']:
-                key = reply['key']
-                channel['request'].update({'key': key})
-                _, timeframe, id = key.split(sep=':')[:3]
-                symbol = self.markets_by_id[id]['symbol']
-                channel.update({
-                    'symbol': symbol,
-                    'timeframe': timeframe
-                })
+            if name == self.channels[self.ORDER_BOOK]['ex_name']:
+                result = {
+                    'prec': reply['prec'],
+                    'freq': reply['freq'],
+                    'len': int(reply['len'])
+                }
+                channel['request'].update(result)
+                channel.update(result)
         self.connection_metadata_handler(websocket, channel)
 
     def parse_error(self, reply, websocket, market=None):
