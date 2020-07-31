@@ -135,30 +135,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
 
     def parse_trades_ws(self, reply, market):
         trades = reply[1]
-        timestamp = self.milliseconds()
-        datetime = self.iso8601(timestamp)
-        symbol = market['symbol']
-        result = []
-        for trade in trades:
-            price = float(trade[0])
-            amount = float(trade[1])
-            order_type = trade[4]
-            result.append({
-                'info': trade,
-                'id': None,
-                'timestamp': timestamp,
-                'datetime': datetime,
-                'symbol': symbol,
-                'order': None,
-                'type': order_type,
-                'side': trade[3],
-                'takerOrMaker': 'maker' if order_type == 'limit' else 'taker',
-                'price': price,
-                'amount': amount,
-                'cost': price * amount,
-                'fee': None
-            })
-        return self.TRADES, result
+        return 'trades', self.parse_trades(trades, market)
 
     def parse_bid_ask(self, bid_ask, price_key=0, amount_key=1):
         price = float(bid_ask[0])

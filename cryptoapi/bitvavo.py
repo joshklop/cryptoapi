@@ -77,7 +77,7 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
         return self.TICKER, super().parse_ticker(reply, market)
 
     def parse_trades_ws(self, reply, market):
-        return self.TRADES, [super().parse_trade(reply, market)]
+        return self.TRADES, self.parse_trades(reply, market)
 
     def parse_order_book_ws(self, reply, market):
         snapshot = True if reply['nonce'] == 0 else False

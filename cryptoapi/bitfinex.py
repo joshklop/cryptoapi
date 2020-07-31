@@ -162,8 +162,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         trades = reply[1]
         if not isinstance(trades[0], list):
             trades = [trades]
-        trades = self.sort_by(trades, 1)  # Sort by timestamp
-        return self.TRADES, [self.parse_trade(t, market=market) for t in trades]
+        return self.TRADES, self.parse_trades(trades, market)
 
     def parse_order_book_ws(self, reply, market):
         order_book = reply[1]

@@ -81,7 +81,7 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         return self.TICKER, super().parse_ticker(reply, market)
 
     def parse_trades_ws(self, reply, market):
-        return self.TRADES, [super().parse_trade(reply, market=market)]
+        return self.TRADES, self.parse_trades(reply, market)
 
     def parse_order_book_ws(self, reply, market):
         if reply['type'] == 'snapshot':
