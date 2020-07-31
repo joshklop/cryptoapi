@@ -62,7 +62,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
     def ex_channel_id_from_reply(self, reply, websocket):
         return reply[0]
 
-    def update_connections(self, reply, websocket):
+    def register_channel(self, reply, websocket):
         ex_channel_id = reply['channelID']
         ex_name = reply['subscription']['name']
         name = self.channels_by_ex_name[ex_name]['name']
@@ -87,7 +87,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             channel.update({
                 'timeframe': timeframe
             })
-        self.connection_metadata_handler(websocket, channel)
+        self.connections[websocket].append(channel)  # Register channel
 
     def parse_error_ws(self, reply, market=None):
         error_msg = reply['errorMessage']

@@ -80,7 +80,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         else:
             raise UnknownResponse(reply)
 
-    def update_connections(self, reply, websocket):
+    def register_channel(self, reply, websocket):
         channel = {}
         ex_channel_id = reply['chanId']
         channel_id = self.claim_channel_id()
@@ -116,7 +116,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
                 }
                 channel['request'].update(result)
                 channel.update(result)
-        self.connection_metadata_handler(websocket, channel)
+        self.connections[websocket].append(channel)  # Register channel
 
     def parse_error_ws(self, reply, market=None):
         code = reply['code'] if self.key_exists(reply, 'code') else None

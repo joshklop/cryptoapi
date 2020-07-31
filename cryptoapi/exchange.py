@@ -88,7 +88,6 @@ class Exchange():
         endpoint = self.ws_endpoint['public'] if public else self.ws_endpoint['private']
         websocket = await websockets.connect(endpoint)
         self.connections[websocket] = []  # Register websocket
-        self.pending_channels[websocket] = requests[:self.max_channels]
         await self.send(websocket, requests[:self.max_channels])
         del requests[:self.max_channels]
         await asyncio.create_task(self.consumer(websocket))
@@ -109,7 +108,7 @@ class Exchange():
 
     def parse_reply(self, reply, websocket):
         if reply[self.event] == self.subscribed:
-            return self.update_connections(reply, websocket)
+            return self.register_channel(reply, websocket)
         elif reply[self.event] in self.others:
             return self.parse_other(reply)
         ex_channel_id = self.ex_channel_id_from_reply(reply)
@@ -125,16 +124,6 @@ class Exchange():
     def parse_other(self, reply, websocket, market=None):
         return {'other': reply}
 
-    def connection_metadata_handler(self, websocket, channel):
-        self.connections[websocket].append(channel)  # Register channel
-        # Clean self.pending_channels
-        for ch in self.pending_channels[websocket]:
-            if ch == channel['request']:
-                index = self.pending_channels[websocket].index(ch)
-                del self.pending_channels[websocket][index]
-                if not self.pending_channels[websocket]:
-                    del self.pending_channels[websocket]
-                break
 
     def update_order_book(self, update, market, snapshot=False):
         symbol = market['symbol']
@@ -194,6 +183,3 @@ class Exchange():
 
     def get_channels(self):
         return [c for ws, c in self.connections.values()] if self.connections else []
-
-    def get_pending_channels(self):
-        return [c for ws, c in self.pending_connections.values()] if self.pending_connections else []

@@ -46,7 +46,7 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
     def ex_channel_id_from_reply(self, reply):
         return (reply['type'], reply['product_id'])
 
-    def update_connections(self, reply, websocket):
+    def register_channel(self, reply, websocket):
         ex_name = reply['channels'][0]['name']
         subed_ids = reply['channels'][0]['product_ids']  # List of subscribed markets
         subed_symbols = [
@@ -70,7 +70,7 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
             'symbol': symbol,
             'ex_channel_id': (ex_name, id)
         }
-        self.connection_metadata_handler(websocket, channel)
+        self.connections[websocket].append(channel)  # Register channel
 
     def parse_error_ws(self, reply, market=None):
         err = f"Error: {reply['message']}."

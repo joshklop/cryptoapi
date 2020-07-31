@@ -49,7 +49,7 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
     def ex_channel_id_from_reply(self, reply):
         return (reply['event'], reply['market'])
 
-    def update_connections(self, reply, websocket):
+    def register_channel(self, reply, websocket):
         ex_name = list(reply.keys())[0]
         name = self.channels_by_ex_name[ex_name]['name']
         if name == self.OHLCVS:
@@ -68,7 +68,7 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
             'symbol': symbol,
             'ex_channel_id': (ex_name, id)
         }
-        self.connection_metadata_handler(websocket, channel)
+        self.connections[websocket].append(channel)  # Register channel
 
     def parse_error_ws(self, reply, market=None):
         pass  # Errors are not defined in API documentation.
