@@ -122,9 +122,20 @@ class Exchange(ccxt.Exchange):
                 return parse(reply, market)
         raise UnknownResponse(reply)
 
-    def parse_other(self, reply, websocket, market=None):
-        return {'other': reply}
+    def parse_ticker_ws(self, reply, market):
+        pass
 
+    def parse_trades_ws(self, reply, market):
+        pass
+
+    def parse_order_book_ws(self, reply, market):
+        pass
+
+    def parse_ohlcvs_ws(self, reply, market):
+        pass
+
+    def parse_other(self, reply, market=None):
+        return {'other': reply}
 
     def update_order_book(self, update, market, snapshot=False):
         symbol = market['symbol']
