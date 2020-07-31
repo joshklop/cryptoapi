@@ -194,4 +194,4 @@ class Exchange(ccxt.Exchange):
         }
 
     def get_channels(self):
-        return [c for ws, c in self.connections.values()] if self.connections else []
+        return [c for chans in self.connections.values() for c in chans] if self.connections else []
