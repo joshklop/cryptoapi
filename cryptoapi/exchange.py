@@ -1,7 +1,7 @@
 import asyncio
 import websockets
 from aiolimiter import AsyncLimiter
-from errors import UnknownResponse
+from cryptoapi.errors import UnknownResponse
 
 
 class Exchange():
