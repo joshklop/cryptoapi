@@ -76,8 +76,8 @@ class Exchange(ccxt.Exchange):
     def build_requests(self, symbols, channel):
         return []
 
-    async def throttle(self, throttled_method):
-        async def wrapper(requests, public):
+    def throttle(throttled_method):
+        async def wrapper(self, requests, public):
             rate_limit = self.max_connections['public'] if public else self.max_connections['private']
             while requests:
                 async with rate_limit:
