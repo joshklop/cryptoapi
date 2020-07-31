@@ -1,10 +1,11 @@
 import asyncio
+import ccxt
 import websockets
 from aiolimiter import AsyncLimiter
 from cryptoapi.errors import UnknownResponse
 
 
-class Exchange():
+class Exchange(ccxt.Exchange):
 
     TICKER = 'ticker'
     TRADES = 'trades'
