@@ -72,7 +72,7 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         }
         self.connection_metadata_handler(websocket, channel)
 
-    def parse_error_ws(self, reply, market):
+    def parse_error_ws(self, reply, market=None):
         err = f"Error: {reply['message']}."
         reason = f"Reason: {reply['reason']}" if super().key_exists(reply, 'reason') else ''
         raise BaseError(err + "\n" + reason)

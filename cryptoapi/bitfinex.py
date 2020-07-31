@@ -118,7 +118,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
                 channel.update(result)
         self.connection_metadata_handler(websocket, channel)
 
-    def parse_error_ws(self, reply, market):
+    def parse_error_ws(self, reply, market=None):
         code = reply['code'] if self.key_exists(reply, 'code') else None
         if reply['event'] == 'error':
             if code == 10000:

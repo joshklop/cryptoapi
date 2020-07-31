@@ -70,7 +70,7 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
         }
         self.connection_metadata_handler(websocket, channel)
 
-    def parse_error_ws(self, reply, market):
+    def parse_error_ws(self, reply, market=None):
         pass  # Errors are not defined in API documentation.
 
     def parse_ticker_ws(self, reply, market):

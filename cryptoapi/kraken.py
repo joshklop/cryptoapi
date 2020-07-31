@@ -89,7 +89,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             })
         self.connection_metadata_handler(websocket, channel)
 
-    def parse_error_ws(self, reply, market):
+    def parse_error_ws(self, reply, market=None):
         error_msg = reply['errorMessage']
         iso_format_msg = 'Currency pair not in ISO 4217-A3 format'
         if iso_format_msg in error_msg:
