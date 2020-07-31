@@ -160,7 +160,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             })
         return self.TRADES, result
 
-    def parse_bid_ask_ws(self, bid_ask, price_key=0, amount_key=1):
+    def parse_bid_ask(self, bid_ask, price_key=0, amount_key=1):
         price = float(bid_ask[0])
         amount = float(bid_ask[1])
         timestamp = float(bid_ask[2])

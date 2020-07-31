@@ -78,12 +78,10 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         raise BaseError(err + "\n" + reason)
 
     def parse_ticker_ws(self, reply, market):
-        ticker = reply
-        return self.TICKER, super().parse_ticker(ticker, market)
+        return self.TICKER, super().parse_ticker(reply, market)
 
     def parse_trades_ws(self, reply, market):
-        trade = reply
-        return self.TRADES, [super().parse_trade(trade, market=market)]
+        return self.TRADES, [super().parse_trade(reply, market=market)]
 
     def parse_order_book_ws(self, reply, market):
         if reply['type'] == 'snapshot':
