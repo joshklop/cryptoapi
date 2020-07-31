@@ -25,7 +25,7 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         # Unlimited if equal to (10 ** 5, 60000).
         self.max_connections = {
             'public': AsyncLimiter(1, 4000 / 1000),
-            'private': AsyncLimiter(0, 0 / 1000)
+            'private': AsyncLimiter(1, 60000 / 1000)
         }
         self.ws_endpoint = {
             'public': 'wss://ws-feed.pro.coinbase.com',

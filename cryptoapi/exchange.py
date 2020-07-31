@@ -41,11 +41,10 @@ class Exchange(ccxt.Exchange):
         #   where the unit of time is in milliseconds.
         # Example: AsyncLimiter(1, 60000 / 1000) --> one connection per minute
         self.max_connections = {
-            'public': AsyncLimiter(0, 0 / 1000),
-            'private': AsyncLimiter(0, 0 / 1000)
+            'public': AsyncLimiter(1, 60000 / 1000),
+            'private': AsyncLimiter(1, 60000 / 1000)
         }
         self.connections = {}
-        self.pending_channels = {}
         self.result = asyncio.Queue(maxsize=1)
         self.ws_endpoint = {
             'public': '',
