@@ -72,45 +72,36 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         }
         self.connection_metadata_handler(websocket, channel)
 
-    def parse_error(self, reply, websocket, market=None):
+    def parse_error_ws(self, reply, market):
         err = f"Error: {reply['message']}."
         reason = f"Reason: {reply['reason']}" if super().key_exists(reply, 'reason') else ''
         raise BaseError(err + "\n" + reason)
 
-    def parse_ticker(self, reply, websocket, market=None):
+    def parse_ticker_ws(self, reply, market):
         ticker = reply
         return self.TICKER, super().parse_ticker(ticker, market)
 
-    def parse_trades(self, reply, websocket, market=None):
+    def parse_trades_ws(self, reply, market):
         trade = reply
         return self.TRADES, [super().parse_trade(trade, market=market)]
 
-    def parse_order_book(self, reply, websocket, market=None):
-        order_book = reply
-        symbol = market['symbol']
-        if order_book['type'] == 'snapshot':
-            order_book = super(ccxt.coinbasepro, self).parse_order_book(order_book)
-            self.order_book[symbol] = {'bids': order_book['bids'], 'asks': order_book['asks']}
+    def parse_order_book_ws(self, reply, market):
+        if reply['type'] == 'snapshot':
+            snapshot = True
+            update = super().parse_order_book(reply)
         else:
-            for change in order_book['changes']:
-                self_order_book = self.order_book[symbol]['bids'] if 'buy' in change else self.order_book[symbol]['asks']
-                price = float(change[1])
-                amount = float(change[2])
-                existing_prices = [o[0] for o in self_order_book]
-                if price in existing_prices:
-                    idx = existing_prices.index(price)
-                    if amount == 0:
-                        del self_order_book[idx]
-                    else:
-                        self_order_book[idx] = [price, amount]
-                else:
-                    self_order_book.append([price, amount])
-        timeframe = self.milliseconds()
-        self.order_book[symbol].update({
-            'timeframe': timeframe,
-            'datetime': self.iso8601(timeframe),
-            'nonce': None
-        })
-        self.order_book[symbol]['bids'] = sorted(self.order_book[symbol]['bids'], key=lambda l: l[0], reverse=True)
-        self.order_book[symbol]['asks'] = sorted(self.order_book[symbol]['asks'], key=lambda l: l[0])
-        return self.ORDER_BOOK, {symbol: self.order_book[symbol]}
+            snapshot = False
+            update = {
+                'bids': [],
+                'asks': [],
+                'timestamp': None,
+                'datetime': None,
+                'nonce': None
+            }
+            for o in reply['changes']:
+                side = 'bids' if o[0] == 'buy' else 'asks'
+                price = float(o[1])
+                amount = float(o[2])
+                update[side].append([price, amount])
+        self.update_order_book(update, market, snapshot)
+        return 'order_book', {market['symbol']: update}

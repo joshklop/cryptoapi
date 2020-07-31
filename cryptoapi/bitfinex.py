@@ -118,7 +118,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
                 channel.update(result)
         self.connection_metadata_handler(websocket, channel)
 
-    def parse_error(self, reply, websocket, market=None):
+    def parse_error_ws(self, reply, market):
         code = reply['code'] if self.key_exists(reply, 'code') else None
         if reply['event'] == 'error':
             if code == 10000:
@@ -154,40 +154,43 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         else:
             raise BaseError(reply['msg'])
 
-    def parse_ticker(self, reply, websocket, market=None):
+    def parse_ticker_ws(self, reply, market):
         ticker = reply[1]
         return self.TICKER, super().parse_ticker(ticker, market)
 
-    def parse_trades(self, reply, websocket, market=None):
+    def parse_trades_ws(self, reply, market):
         trades = reply[1]
         if not isinstance(trades[0], list):
             trades = [trades]
         trades = self.sort_by(trades, 1)  # Sort by timestamp
         return self.TRADES, [self.parse_trade(t, market=market) for t in trades]
 
-    def parse_order_book(self, reply, websocket, market=None):
+    def parse_order_book_ws(self, reply, market):
         order_book = reply[1]
         symbol = market['symbol']
-        priceIndex = 1
+        timestamp = self.milliseconds()
+        update = {
+            'bids': [],
+            'asks': [],
+            'timestamp': timestamp,
+            'datetime': self.iso8601(timestamp),
+            'nonce': None,
+        }
         if not isinstance(order_book[0], list):
             order_book = [order_book]
+            snapshot = False
+        else:
+            snapshot = True
         for i in range(0, len(order_book)):
             order = order_book[i]
-            price = order[priceIndex]
+            price = order[0]
             side = 'bids' if (order[2] > 0) else 'asks'
             amount = abs(order[2])
-            self.order_book[symbol][side].append([price, amount])
-        timeframe = self.milliseconds()
-        self.order_book[symbol].update({
-            'timeframe': timeframe,
-            'datetime': self.iso8601(timeframe),
-            'nonce': None
-        })
-        self.order_book[symbol]['bids'] = sorted(self.order_book[symbol]['bids'], key=lambda l: l[0], reverse=True)
-        self.order_book[symbol]['asks'] = sorted(self.order_book[symbol]['asks'], key=lambda l: l[0])
-        return self.ORDER_BOOK, {symbol: self.order_book[symbol]}
+            update[side].append([price, amount])
+        self.update_order_book(update, market, snapshot=snapshot)
+        return 'order_book', {symbol: update}
 
-    def parse_ohlcvs(self, reply, websocket, market=None):
+    def parse_ohlcvs_ws(self, reply, market):
         ohlcvs = reply[1]
         symbol = market['symbol']
         if not isinstance(ohlcvs[0], list):

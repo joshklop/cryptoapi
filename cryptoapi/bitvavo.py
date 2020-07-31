@@ -70,17 +70,20 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
         }
         self.connection_metadata_handler(websocket, channel)
 
-    def parse_error(self, reply, websocket, market=None):
+    def parse_error_ws(self, reply, market):
         pass  # Errors are not defined in API documentation.
 
-    def parse_ticker(self, reply, websocket, market=None):
+    def parse_ticker_ws(self, reply, market):
         return self.TICKER, super().parse_ticker(reply, market)
 
-    def parse_trades(self, reply, websocket, market=None):
+    def parse_trades_ws(self, reply, market):
         return self.TRADES, [super().parse_trade(reply, market)]
 
-    def parse_order_book(self, reply, websocket, market=None):
-        return self.ORDER_BOOK, super().parse_order_book(reply, market)
+    def parse_order_book_ws(self, reply, market):
+        snapshot = True if reply['nonce'] == 0 else False
+        update = super().parse_order_book(reply)
+        self.update_order_book(update, market, snapshot)
+        return 'order_book', {market['symbol']: update}
 
-    def parse_ohlcvs(self, reply, websocket, market=None):
+    def parse_ohlcvs_ws(self, reply, market):
         return self.OHLCVS, super().parse_ohlcvs(reply, market)

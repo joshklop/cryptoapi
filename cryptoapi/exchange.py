@@ -16,22 +16,22 @@ class Exchange():
             self.TICKER: {
                 'ex_name': '',
                 'has': False,
-                'parse': self.parse_ticker
+                'parse': self.parse_ticker_ws
             },
             self.TRADES: {
                 'ex_name': '',
                 'has': False,
-                'parse': self.parse_trades
+                'parse': self.parse_trades_ws
             },
             self.ORDER_BOOK: {
                 'ex_name': '',
                 'has': False,
-                'parse': self.parse_order_book
+                'parse': self.parse_order_book_ws
             },
             self.OHLCVS: {
                 'ex_name': '',
                 'has': False,
-                'parse': self.parse_ohlcvs
+                'parse': self.parse_ohlcvs_ws
             }
         }
         self.channels_by_ex_name = self.channels_by_ex_name()
@@ -52,6 +52,7 @@ class Exchange():
         }
         self.event = ''
         self.subscribed = ''
+        self.order_book = {}
         # All message events that are not unified.
         self.others = []
 
@@ -108,15 +109,17 @@ class Exchange():
 
     def parse_reply(self, reply, websocket):
         if reply[self.event] == self.subscribed:
-            return self.parse_subscribed(reply, websocket)
+            return self.update_connections(reply, websocket)
         elif reply[self.event] in self.others:
             return self.parse_other(reply)
         ex_channel_id = self.ex_channel_id_from_reply(reply)
         for c in self.connections[websocket]:
             if c['ex_channel_id'] == ex_channel_id:
                 name = c['name']
+                symbol = c['symbol']
+                market = self.markets[symbol]
                 parse = self.channels[name]['parse']
-                return parse(reply)
+                return parse(reply, market)
         raise UnknownResponse(reply)
 
     def parse_other(self, reply, websocket, market=None):
@@ -132,6 +135,44 @@ class Exchange():
                 if not self.pending_channels[websocket]:
                     del self.pending_channels[websocket]
                 break
+
+    def update_order_book(self, update, market, snapshot=False):
+        symbol = market['symbol']
+        if snapshot:
+            self.order_book[symbol] = update
+            return
+        self.order_book[symbol]['timestamp'] = update.pop('timestamp')
+        self.order_book[symbol]['datetime'] = update.pop('datetime')
+        self.order_book[symbol]['nonce'] = update.pop('nonce')
+        prices = {
+            'bids': [bid[0] for bid in self.order_book[symbol]['bids']],
+            'asks': [ask[0] for ask in self.order_book[symbol]['asks']]
+        }
+        for key, bids_asks in update.items():
+            for bid_ask in bids_asks:
+                price = bid_ask[0]
+                amount = bid_ask[1]
+                if price in prices[key]:
+                    # The index for the bid_ask in question
+                    idx = prices[key].index(price)
+                    if amount == 0:
+                        del self.order_book[symbol][key][idx]
+                        # Make sure prices's indices are synced
+                        # with self.order_book
+                        del prices[key][idx]
+                    else:
+                        self.order_book[symbol][key][idx] = bid_ask
+                else:
+                    self.order_book[symbol][key].append(bid_ask)
+        self.order_book[symbol]['bids'] = self.sort_by(self.order_book[symbol]['bids'], 0, True)
+        self.order_book[symbol]['asks'] = self.sort_by(self.order_book[symbol]['asks'], 0)
+
+    def normalize_order_book_reply(self, order_book, bids_key='bids', asks_key='asks'):
+        if not self.key_exists(order_book, bids_key):
+            order_book[bids_key] = []
+        elif not self.key_exists(order_book, asks_key):
+            order_book[asks_key] = []
+        return order_book
 
     def claim_channel_id(self):
         channels = self.get_channels()

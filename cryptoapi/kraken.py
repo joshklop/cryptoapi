@@ -62,7 +62,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
     def ex_channel_id_from_reply(self, reply, websocket):
         return reply[0]
 
-    def update_connections(self, reply, websocket, market=None):
+    def update_connections(self, reply, websocket):
         ex_channel_id = reply['channelID']
         ex_name = reply['subscription']['name']
         name = self.channels_by_ex_name[ex_name]['name']
@@ -89,7 +89,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             })
         self.connection_metadata_handler(websocket, channel)
 
-    def parse_error(self, reply, websocket, market=None):
+    def parse_error_ws(self, reply, market):
         error_msg = reply['errorMessage']
         iso_format_msg = 'Currency pair not in ISO 4217-A3 format'
         if iso_format_msg in error_msg:
@@ -97,7 +97,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         else:
             raise BaseError(reply['errorMessage'])
 
-    def parse_ticker(self, reply, websocket, market=None):
+    def parse_ticker_ws(self, reply, market):
         ticker = reply[1]
         symbol = market['symbol'] if market else None
         open = float(ticker['o'][0])
@@ -133,7 +133,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             'quoteVolume': quoteVolume
         }
 
-    def parse_trades(self, reply, websocket, market=None):
+    def parse_trades_ws(self, reply, market):
         trades = reply[1]
         timestamp = self.milliseconds()
         datetime = self.iso8601(timestamp)
@@ -160,40 +160,31 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             })
         return self.TRADES, result
 
-    # Override ccxt.Exchange.safe_integer. Kraken's websocket stream sends timestamps as floats.
-    # This is particularly important for parse_order_book_.
-    # FIXME: this is dangerous. Affects other methods as well, not just parse_order_book.
-    def safe_integer(self, dictionary, key):
-        return float(dictionary[key])
+    def parse_bid_ask_ws(self, bid_ask, price_key=0, amount_key=1):
+        price = float(bid_ask[0])
+        amount = float(bid_ask[1])
+        timestamp = float(bid_ask[2])
+        return [price, amount, timestamp]
 
-    def parse_order_book(self, reply, websocket, market=None):
+    def parse_order_book_ws(self, reply, market):
         order_book = reply[1]
         symbol = market['symbol']
+        # Update
+        if self.key_exists(order_book, 'b') or self.key_exists(order_book, 'a'):
+            order_book = self.normalize_order_book_reply(order_book, bids_key='b', asks_key='a')
+            update = super().parse_order_book(order_book, bids_key='b', asks_key='a')
+            self.update_order_book(update, market)
         # Snapshot
-        if super().key_exists(order_book, 'bs'):
-            order_book = super(ccxt.kraken, self).parse_order_book(order_book, bids_key='bs', asks_key='as')
-            bids, asks = [ask[:2] for ask in order_book['asks']], [ask[:2] for ask in order_book['asks']]
-            self.order_book[symbol] = {'bids': bids, 'asks': asks}
-        # Updates
         else:
-            order_book = super(ccxt.kraken, self).parse_order_book(order_book, bids_key='b', asks_key='a')
-            bids, asks = [ask[:2] for ask in order_book['asks']], [ask[:2] for ask in order_book['asks']]
-            self.order_book[symbol]['bids'].extend(bids)
-            self.order_book[symbol]['asks'].extend(asks)
-        timestamp = self.milliseconds()
-        self.order_book[symbol].update({
-            'timestamp': timestamp,
-            'datetime': self.iso8601(timestamp),
-            'nonce': None
-        })
-        self.order_book[symbol]['bids'] = sorted(self.order_book[symbol]['bids'], key=lambda l: l[0], reverse=True)
-        self.order_book[symbol]['asks'] = sorted(self.order_book[symbol]['asks'], key=lambda l: l[0])
-        return self.ORDER_BOOK, {symbol: self.order_book[symbol]}
+            order_book = self.normalize_order_book_reply(order_book, bids_key='bs', asks_key='as')
+            update = super().parse_order_book(order_book, bids_key='bs', asks_key='as')
+            self.update_order_book(update, market, snapshot=True)
+        return 'order_book', {symbol: update}
 
-    def parse_ohlcvs(self, reply, websocket, market=None):
+    def parse_ohlcvs(self, reply, market):
         ohlcvs = reply[1]
         symbol = market['symbol']
         if not isinstance(ohlcvs[0], list):
             ohlcvs = [ohlcvs]
         return self.OHLCVS, {symbol: [[i[1], float(i[2]), float(i[3]), float(i[4]), float(i[5]), float(i[6])]
-                                for i in ohlcvs]}
+                             for i in ohlcvs]}
