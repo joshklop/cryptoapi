@@ -142,14 +142,15 @@ class Exchange(ccxt.Exchange):
         if snapshot:
             self.order_book[symbol] = update
             return
-        self.order_book[symbol]['timestamp'] = update.pop('timestamp')
-        self.order_book[symbol]['datetime'] = update.pop('datetime')
-        self.order_book[symbol]['nonce'] = update.pop('nonce')
+        cupdate = update.copy()
+        self.order_book[symbol]['timestamp'] = cupdate.pop('timestamp')
+        self.order_book[symbol]['datetime'] = cupdate.pop('datetime')
+        self.order_book[symbol]['nonce'] = cupdate.pop('nonce')
         prices = {
             'bids': [bid[0] for bid in self.order_book[symbol]['bids']],
             'asks': [ask[0] for ask in self.order_book[symbol]['asks']]
         }
-        for key, bids_asks in update.items():
+        for key, bids_asks in cupdate.items():
             for bid_ask in bids_asks:
                 price = bid_ask[0]
                 amount = bid_ask[1]
