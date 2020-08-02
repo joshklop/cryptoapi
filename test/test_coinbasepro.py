@@ -1,57 +1,7 @@
 import unittest
-from cryptoapi.coinbasepro import Coinbasepro
-from test.helpers import AsyncContextManager, BOOK_METADATA
 
-TEST_MARKET = {
-    'percentage': True,
-    'tierBased': True,
-    'maker': 0.005,
-    'taker': 0.005,
-    'precision': {
-        'amount': 8,
-        'price': 2
-    },
-    'limits': {
-        'amount': {
-            'min': 0.001,
-            'max': 280.0
-        },
-        'price': {
-            'min': 0.01,
-            'max': None
-        },
-        'cost': {
-            'min': 5.0,
-            'max': 1000000.0
-        }
-    },
-    'id': 'BTC-USD',
-    'symbol': 'BTC/USD',
-    'baseId': 'BTC',
-    'quoteId': 'USD',
-    'base': 'BTC',
-    'quote': 'USD',
-    'active': True,
-    'info': {
-        'id': 'BTC-USD',
-        'base_currency': 'BTC',
-        'quote_currency': 'USD',
-        'base_min_size': '0.00100000',
-        'base_max_size': '280.00000000',
-        'quote_increment': '0.01000000',
-        'base_increment': '0.00000001',
-        'display_name': 'BTC/USD',
-        'min_market_funds': '5',
-        'max_market_funds': '1000000',
-        'margin_enabled': False,
-        'post_only': False,
-        'limit_only': False,
-        'cancel_only': False,
-        'trading_disabled': False,
-        'status': 'online',
-        'status_message': ''
-    }
-}
+from cryptoapi.coinbasepro import Coinbasepro
+from test.helpers import AsyncContextManager, BOOK_METADATA, TEST_MARKET
 
 
 class TestKraken(unittest.IsolatedAsyncioTestCase):
@@ -59,10 +9,9 @@ class TestKraken(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         async with Coinbasepro():
             self.exchange = Coinbasepro()
-            symbol = TEST_MARKET['symbol']
-            self.exchange.markets = {symbol: TEST_MARKET}
+            self.exchange.markets = {TEST_MARKET['symbol']: TEST_MARKET}
             self.exchange.markets_by_id = {TEST_MARKET['id']: TEST_MARKET}
-            self.test_market = self.exchange.markets[symbol]
+            self.test_market = TEST_MARKET
 
     def test_build_requests(self):
         symbols = [self.test_market['symbol']]

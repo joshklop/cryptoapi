@@ -1,104 +1,7 @@
 import unittest
-from cryptoapi.kraken import Kraken
-from test.helpers import AsyncContextManager, BOOK_METADATA
 
-TEST_MARKET = {
-    'percentage': True,
-    'tierBased': True,
-    'taker': 0.0026,
-    'maker': 0.0016,
-    'tiers': {
-        'taker': [
-            [0, 0.0026],
-            [50000, 0.0024],
-            [100000, 0.0022],
-            [250000, 0.002],
-            [500000, 0.0018],
-            [1000000, 0.0016],
-            [2500000, 0.0014],
-            [5000000, 0.0012],
-            [10000000, 0.0001]
-        ],
-        'maker': [
-            [0, 0.0016],
-            [50000, 0.0014],
-            [100000, 0.0012],
-            [250000, 0.001],
-            [500000, 0.0008],
-            [1000000, 0.0006],
-            [2500000, 0.0004],
-            [5000000, 0.0002],
-            [10000000, 0.0]
-        ]
-    },
-    'precision': {
-        'amount': 8,
-        'price': 1
-    },
-    'limits': {
-        'amount': {
-            'min': 0.002,
-            'max': 100000000.0
-        },
-        'price': {
-            'min': 0.1,
-            'max': None
-        },
-        'cost': {
-            'min': 0,
-            'max': None
-        }
-    },
-    'id': 'XXBTZUSD',
-    'symbol': 'BTC/USD',
-    'base': 'BTC',
-    'quote': 'USD',
-    'baseId': 'XXBT',
-    'quoteId': 'ZUSD',
-    'darkpool': False,
-    'info': {
-        'altname': 'XBTUSD',
-        'wsname': 'XBT/USD',
-        'aclass_base': 'currency',
-        'base': 'XXBT',
-        'aclass_quote': 'currency',
-        'quote': 'ZUSD',
-        'lot': 'unit',
-        'pair_decimals': 1,
-        'lot_decimals': 8,
-        'lot_multiplier': 1,
-        'leverage_buy': [2, 3, 4, 5],
-        'leverage_sell': [2, 3, 4, 5],
-        'fees': [
-            [0, 0.26],
-            [50000, 0.24],
-            [100000, 0.22],
-            [250000, 0.2],
-            [500000, 0.18],
-            [1000000, 0.16],
-            [2500000, 0.14],
-            [5000000, 0.12],
-            [10000000, 0.1]
-        ],
-        'fees_maker': [
-            [0, 0.16],
-            [50000, 0.14],
-            [100000, 0.12],
-            [250000, 0.1],
-            [500000, 0.08],
-            [1000000, 0.06],
-            [2500000, 0.04],
-            [5000000, 0.02],
-            [10000000, 0]
-        ],
-        'fee_volume_currency': 'ZUSD',
-        'margin_call': 80,
-        'margin_stop': 40,
-        'ordermin': '0.002'
-    },
-    'altname': 'XBTUSD',
-    'active': True
-}
+from cryptoapi.kraken import Kraken
+from test.helpers import AsyncContextManager, BOOK_METADATA, TEST_MARKET
 
 
 class TestKraken(unittest.IsolatedAsyncioTestCase):
@@ -106,10 +9,9 @@ class TestKraken(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         async with Kraken():
             self.exchange = Kraken()
-            symbol = TEST_MARKET['symbol']
-            self.exchange.markets = {symbol: TEST_MARKET}
+            self.exchange.markets = {TEST_MARKET['symbol']: TEST_MARKET}
             self.exchange.markets_by_id = {TEST_MARKET['id']: TEST_MARKET}
-            self.test_market = self.exchange.markets[symbol]
+            self.test_market = TEST_MARKET
 
     def test_build_requests(self):
         symbol = [self.test_market['symbol']]

@@ -1,72 +1,7 @@
 import unittest
-from cryptoapi.bitvavo import Bitvavo
-from test.helpers import AsyncContextManager, BOOK_METADATA
 
-TEST_MARKET = {
-    'percentage': True,
-    'tierBased': True,
-    'taker': 0.0025,
-    'maker': 0.002,
-    'tiers': {
-        'taker': [
-            [0, 0.0025],
-            [50000, 0.0024],
-            [100000, 0.0022],
-            [250000, 0.002],
-            [500000, 0.0018],
-            [1000000, 0.0016],
-            [2500000, 0.0014],
-            [5000000, 0.0012],
-            [10000000, 0.001]
-        ],
-        'maker': [
-            [0, 0.002],
-            [50000, 0.0015],
-            [100000, 0.001],
-            [250000, 0.0006],
-            [500000, 0.0003],
-            [1000000, 0.0001],
-            [2500000, -0.0001],
-            [5000000, -0.0003],
-            [10000000, -0.0005]
-        ]
-    },
-    'precision': {
-        'price': 5,
-        'amount': 8
-    },
-    'limits': {
-        'amount': {
-            'min': 0.001,
-            'max': None
-        },
-        'price': {
-            'min': None,
-            'max': None
-        },
-        'cost': {
-            'min': 5.0,
-            'max': None
-        }
-    },
-    'id': 'BTC-EUR',
-    'symbol': 'BTC/EUR',
-    'base': 'BTC',
-    'quote': 'EUR',
-    'baseId': 'BTC',
-    'quoteId': 'EUR',
-    'info': {
-        'market': 'BTC-EUR',
-        'status': 'trading',
-        'base': 'BTC',
-        'quote': 'EUR',
-        'pricePrecision': 5,
-        'minOrderInBaseAsset': '0.001',
-        'minOrderInQuoteAsset': '5',
-        'orderTypes': ['market', 'limit']
-    },
-    'active': True
-}
+from cryptoapi.bitvavo import Bitvavo
+from test.helpers import AsyncContextManager, BOOK_METADATA, TEST_MARKET
 
 
 class TestBitvavo(unittest.IsolatedAsyncioTestCase):
@@ -74,10 +9,9 @@ class TestBitvavo(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         async with Bitvavo():
             self.exchange = Bitvavo()
-            symbol = TEST_MARKET['symbol']
-            self.exchange.markets = {symbol: TEST_MARKET}
+            self.exchange.markets = {TEST_MARKET['symbol']: TEST_MARKET}
             self.exchange.markets_by_id = {TEST_MARKET['id']: TEST_MARKET}
-            self.test_market = self.exchange.markets[symbol]
+            self.test_market = TEST_MARKET
 
     def test_build_requests(self):
         symbols = [self.test_market['symbol']]

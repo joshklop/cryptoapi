@@ -8,7 +8,7 @@ class TestExchange(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self):
         self.exchange = Exchange()
-        self.test_market = {'symbol': 'BTC/USD'}
+        self.test_market = TEST_MARKET
 
     def test_build_requests(self):
         symbol = self.test_market['symbol']
