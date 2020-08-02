@@ -30,7 +30,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         # Unlimited if equal to 10 ** 5.
         self.max_channels = 25
         # Number of connections that can be created per unit time,
-        #   where the unit of time is in milliseconds.
+        # where the unit of time is in milliseconds.
         # Example: AsyncLimiter(1, 60000 / 1000) --> one connection per minute
         # Unlimited if equal to (10 ** 5, 60000).
         self.max_connections = {
@@ -125,7 +125,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
                     'freq': reply['freq'],
                     'len': depth
                 })
-        self.connections[websocket].append(channel)  # Register channel
+        self.connections[websocket].append(channel)  # Register channel.
 
     def parse_other_ws(self, reply):
         code = reply['code'] if self.key_exists(reply, 'code') else None
@@ -133,7 +133,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
             raise Reconnect('Unsubscribe/subscribe to all channels.')
         elif code == 20060:
             # TODO handle this issue once unsubscribe feature is added.
-            raise Reconnect(
+            raise OnMaintenance(
                 'Exchange is undergoing maintenance.'
                 + ' Pause activity for 2 minutes and then'
                 + ' unsubscribe/subscribe all channels.'
