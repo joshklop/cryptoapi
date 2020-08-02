@@ -6,9 +6,9 @@ from ccxt.base.errors import BaseError
 
 class Kraken(exchange.Exchange, ccxt.kraken):
 
-    def __init__(self, params={}):
-        super(ccxt.kraken, self).__init__(params)
-        super(exchange.Exchange, self).__init__()
+    def __init__(self, config={}):
+        ccxt.kraken.__init__(self, config=config)
+        exchange.Exchange.__init__(self)
         self.channels[self.TICKER]['ex_name'] = 'ticker'
         self.channels[self.TRADES]['ex_name'] = 'trade'
         self.channels[self.ORDER_BOOK]['ex_name'] = 'book'
@@ -17,7 +17,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         self.channels[self.TRADES]['has'] = True
         self.channels[self.ORDER_BOOK]['has'] = True
         self.channels[self.OHLCVS]['has'] = True
-        self.channels_by_ex_name = self.channels_by_ex_name()
+        self.channels_by_ex_name = self.create_channels_by_ex_name()
         # Maximum number of channels per connection.
         # Unlimited if equal to 10 ** 5.
         self.max_channels = 45
@@ -44,7 +44,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         return [
             {'event': 'subscribe',
              'pair': [id],
-             'subscription': {'name': ex_name}.update(params)}
+             'subscription': {'name': ex_name, **params}}
             for id in ids
         ]
 
@@ -59,17 +59,18 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         requests = self.build_requests(symbols, self.OHLCVS, params)
         await self.subscribe(requests, public=True)
 
-    def ex_channel_id_from_reply(self, reply, websocket):
+    def ex_channel_id_from_reply(self, reply):
         return reply[0]
 
     def register_channel(self, reply, websocket):
         ex_channel_id = reply['channelID']
         ex_name = reply['subscription']['name']
         name = self.channels_by_ex_name[ex_name]['name']
-        symbol = reply['pair']
+        id = reply['pair']
+        symbol = self.markets_by_id[id]['symbol']
         request = {
             'event': 'subscribe',
-            'pair': symbol,
+            'pair': id,
             'subscription': reply['subscription']
         }
         channel = {
