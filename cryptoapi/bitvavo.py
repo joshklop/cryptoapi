@@ -50,23 +50,28 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
         return (reply['event'], reply['market'])
 
     def register_channel(self, reply, websocket):
+        reply = reply['subscriptions']
         ex_name = list(reply.keys())[0]
         name = self.channels_by_ex_name[ex_name]['name']
+        req_params = {}
+        params = {}
         if name == self.OHLCVS:
-            ex_timeframe = reply[ex_name]
+            ex_timeframe = list(reply[ex_name].keys())[0]
+            req_params = {'interval': ex_timeframe}
             timeframe = self.timeframes[ex_timeframe]
-            params = {'interval': ex_timeframe}
+            params = {'timeframe': timeframe}
             id = reply[ex_name][timeframe][0]
         else:
             id = reply[ex_name][0]
-        symbol = self.markets[id]['symbol']
-        request = self.build_request([symbol], name, params)
+        symbol = self.markets_by_id[id]['symbol']
+        request = self.build_requests([symbol], name, req_params)[0]
         channel = {
             'request': request,
             'channel_id': self.claim_channel_id(),
             'name': name,
             'symbol': symbol,
-            'ex_channel_id': (ex_name, id)
+            'ex_channel_id': (ex_name, id),
+            **params
         }
         self.connections[websocket].append(channel)  # Register channel
 
