@@ -5,9 +5,9 @@ from aiolimiter import AsyncLimiter
 
 class Bitvavo(exchange.Exchange, ccxt.bitvavo):
 
-    def __init__(self, params={}):
-        super(ccxt.bitvavo, self).__init__(params)
-        super(exchange.Exchange, self).__init__()
+    def __init__(self, config={}):
+        ccxt.bitvavo.__init__(self, config=config)
+        exchange.Exchange.__init__(self)
         self.channels[self.TICKER]['ex_name'] = 'ticker24h'
         self.channels[self.TRADES]['ex_name'] = 'trades'
         self.channels[self.ORDER_BOOK]['ex_name'] = 'book'
@@ -16,7 +16,7 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
         self.channels[self.TRADES]['has'] = True
         self.channels[self.ORDER_BOOK]['has'] = True
         self.channels[self.OHLCVS]['has'] = True
-        self.channels_by_ex_name = self.channels_by_ex_name()
+        self.channels_by_ex_name = self.create_channels_by_ex_name()
         # Maximum number of channels per connection.
         # Unlimited if equal to 10 ** 5.
         self.max_channels = 10 ** 5

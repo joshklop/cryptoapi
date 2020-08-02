@@ -35,7 +35,7 @@ class Exchange(ccxt.Exchange):
                 'parse': self.parse_ohlcvs_ws
             }
         }
-        self.channels_by_ex_name = self.channels_by_ex_name()
+        self.channels_by_ex_name = self.create_channels_by_ex_name()
         self.max_channels = 0  # Maximum number of channels per connection.
         # Number of connections that can be created per unit time,
         #   where the unit of time is in milliseconds.
@@ -184,7 +184,7 @@ class Exchange(ccxt.Exchange):
         else:
             return 0
 
-    def channels_by_ex_name(self):
+    def create_channels_by_ex_name(self):
         return {
             v['ex_name']: {
                 'name': name,
