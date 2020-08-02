@@ -1,6 +1,7 @@
 import unittest
-from cryptoapi.exchange import Exchange
-from test.helpers import AsyncContextManager, BOOK_METADATA
+
+from cryptoapi.base.exchange import Exchange
+from test.helpers import AsyncContextManager, BOOK_METADATA, TEST_MARKET
 
 
 class TestExchange(unittest.IsolatedAsyncioTestCase):

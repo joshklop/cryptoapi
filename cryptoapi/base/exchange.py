@@ -1,8 +1,9 @@
 import asyncio
 import ccxt
 import websockets
+
 from aiolimiter import AsyncLimiter
-from cryptoapi.errors import UnknownResponse
+from cryptoapi.base.errors import UnknownResponse
 
 
 class Exchange(ccxt.Exchange):

@@ -1,7 +1,6 @@
 from ccxt.base.errors import ExchangeError
 from ccxt.base.errors import NetworkError
 from ccxt.base.errors import DDoSProtection
-from ccxt.base.errors import OnMaintenance
 
 error_hierarchy = {
     'BaseError': {

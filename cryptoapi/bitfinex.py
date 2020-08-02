@@ -1,13 +1,15 @@
 import ccxt.async_support as ccxt
-import cryptoapi.exchange as exchange
+import cryptoapi.base.exchange as exchange
+
 from aiolimiter import AsyncLimiter
 from ccxt.base.errors import BaseError
 from ccxt.base.errors import ExchangeError
-from cryptoapi.errors import SubscribeError
-from cryptoapi.errors import UnsubscribeError
-from cryptoapi.errors import ChannelLimitExceeded
-from cryptoapi.errors import Reconnect
-from cryptoapi.errors import UnknownResponse
+from ccxt.base.errors import OnMaintenance
+from cryptoapi.base.errors import SubscribeError
+from cryptoapi.base.errors import UnsubscribeError
+from cryptoapi.base.errors import ChannelLimitExceeded
+from cryptoapi.base.errors import Reconnect
+from cryptoapi.base.errors import UnknownResponse
 
 
 class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
