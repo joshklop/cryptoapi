@@ -52,6 +52,7 @@ class Exchange(ccxt.Exchange):
         }
         self.event = ''
         self.subscribed = ''
+        self.errors = {}
         self.order_book = {}
         # All message events that are not unified.
         self.others = []

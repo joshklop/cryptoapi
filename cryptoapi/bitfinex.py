@@ -3,8 +3,6 @@ import cryptoapi.exchange as exchange
 from aiolimiter import AsyncLimiter
 from ccxt.base.errors import BaseError
 from ccxt.base.errors import ExchangeError
-from ccxt.base.errors import NetworkError
-from ccxt.base.errors import OnMaintenance
 from cryptoapi.errors import SubscribeError
 from cryptoapi.errors import UnsubscribeError
 from cryptoapi.errors import ChannelLimitExceeded
@@ -43,6 +41,16 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         }
         self.event = 'event'
         self.subscribed = 'subscribed'
+        self.errors = {
+            10000: BaseError('Unknown event.'),
+            10001: ExchangeError('Unknown pair.'),
+            10300: SubscribeError,
+            10301: SubscribeError('Already subscribed.'),
+            10302: SubscribeError('Unknown channel.'),
+            10305: ChannelLimitExceeded,
+            10400: UnsubscribeError,
+            10401: UnsubscribeError('Not subscribed.'),
+        }
         # All message events that are not unified.
         self.others = ['info']
 
@@ -117,41 +125,22 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
                 channel.update(result)
         self.connections[websocket].append(channel)  # Register channel
 
-    def parse_error_ws(self, reply, market=None):
+    def parse_other_ws(self, reply):
         code = reply['code'] if self.key_exists(reply, 'code') else None
-        if reply['event'] == 'error':
-            if code == 10000:
-                raise BaseError('Unknown event.')
-            elif code == 10001:
-                raise ExchangeError('Unknown pair.')
-            elif code == 10300:
-                raise SubscribeError
-            elif code == 10301:
-                raise SubscribeError('Already subscribed.')
-            elif code == 10302:
-                raise SubscribeError('Unknown channel.')
-            elif code == 10305:
-                raise ChannelLimitExceeded
-            elif code == 10400:
-                raise UnsubscribeError
-            elif code == 10401:
-                raise UnsubscribeError('Not subscribed.')
-        elif reply['event'] == 'info':
-            if super().key_exists(reply, 'version'):
-                if reply['version'] == 2:
-                    pass
-                else:
-                    raise NetworkError('Version number changed.')
-            elif code == 20051:
-                raise Reconnect('Unsubscribe/subscribe to all channels.')
-            elif code == 20060:
-                raise OnMaintenance(
-                    'Exchange is undergoing maintenance.'
-                    + ' Pause activity for 2 minutes and then'
-                    + ' unsubscribe/subscribe all channels.'
-                )
-        else:
-            raise BaseError(reply['msg'])
+        if code == 20051:
+            raise Reconnect('Unsubscribe/subscribe to all channels.')
+        elif code == 20060:
+            # TODO handle this issue once unsubscribe feature is added.
+            raise Reconnect(
+                'Exchange is undergoing maintenance.'
+                + ' Pause activity for 2 minutes and then'
+                + ' unsubscribe/subscribe all channels.'
+            )
+        if self.key_exists(reply, 'version'):
+            if reply['version'] == 2:
+                pass
+            else:
+                raise ExchangeError('API version number changed.')
 
     def parse_ticker_ws(self, reply, market):
         ticker = reply[1]
