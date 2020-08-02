@@ -124,6 +124,12 @@ class Exchange(ccxt.Exchange):
                 return parse(reply, market)
         raise UnknownResponse(reply)
 
+    def register_channel(self, reply, websocket):
+        self.connections[websocket] = reply
+
+    def parse_error_ws(self, reply, market=None):
+        raise self.errors[reply['code']]
+
     def parse_ticker_ws(self, reply, market):
         pass
 
