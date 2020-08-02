@@ -39,7 +39,8 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         ex_name = self.channels[name]['ex_name']
         return [
             {'type': 'subscribe',
-             'channels': [{'name': ex_name, 'product_ids': [id]}]}.update(params)
+             'channels': [{'name': ex_name, 'product_ids': [id]}],
+             **params}
             for id in ids
         ]
 

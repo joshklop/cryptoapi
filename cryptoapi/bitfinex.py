@@ -60,7 +60,8 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         return [
             {'event': 'subscribe',
              'channel': ex_name,
-             'symbol': id}.update(params)
+             'symbol': id,
+             **params}
             for id in ids
         ]
 

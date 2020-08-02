@@ -42,7 +42,7 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
         ex_name = self.channels[name]['ex_name']
         return [
             {'action': 'subscribe',
-             'channels': [{'name': ex_name, 'markets': [id]}.update(params)]}
+             'channels': [{'name': ex_name, 'markets': [id], **params}]}
             for id in ids
         ]
 
