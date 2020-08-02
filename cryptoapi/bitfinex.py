@@ -1,6 +1,5 @@
-import asyncio
 import ccxt.async_support as ccxt
-import exchange
+import cryptoapi.exchange as exchange
 from aiolimiter import AsyncLimiter
 from ccxt.base.errors import BaseError
 from ccxt.base.errors import ExchangeError
