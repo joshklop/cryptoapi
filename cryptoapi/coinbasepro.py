@@ -67,9 +67,9 @@ class Coinbasepro(exchange.Exchange, ccxt.coinbasepro):
         channel = {
             'request': request,
             'channel_id': self.claim_channel_id(),
+            'ex_channel_id': (ex_name, id),
             'name': name,
             'symbol': symbol,
-            'ex_channel_id': (ex_name, id)
         }
         self.connections[websocket].append(channel)  # Register channel
 

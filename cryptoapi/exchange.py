@@ -110,8 +110,10 @@ class Exchange(ccxt.Exchange):
     def parse_reply(self, reply, websocket):
         if reply[self.event] == self.subscribed:
             return self.register_channel(reply, websocket)
+        elif reply[self.event] in self.error:
+            return self.parse_error_ws(reply)
         elif reply[self.event] in self.others:
-            return self.parse_other(reply)
+            return self.parse_other_ws(reply)
         ex_channel_id = self.ex_channel_id_from_reply(reply)
         for c in self.connections[websocket]:
             if c['ex_channel_id'] == ex_channel_id:
@@ -134,8 +136,8 @@ class Exchange(ccxt.Exchange):
     def parse_ohlcvs_ws(self, reply, market):
         pass
 
-    def parse_other(self, reply, market=None):
-        return {'other': reply}
+    def parse_other_ws(self, reply):
+        return 'other', reply
 
     def update_order_book(self, update, market, snapshot=False):
         symbol = market['symbol']

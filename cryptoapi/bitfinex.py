@@ -100,10 +100,10 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
             'ex_channel_id': ex_channel_id,
             'name': name
         })
-        if name == self.channels[self.OHLCVS]['ex_name']:
+        if name == self.OHLCVS:
             key = reply['key']
             ex_timeframe, id = key.split(sep=':')[1:3]
-            ex_timeframes = {v: k for k, v in self.timeframes}
+            ex_timeframes = {v: k for k, v in self.timeframes.items()}
             timeframe = ex_timeframes[ex_timeframe]
             symbol = self.markets_by_id[id]['symbol']
             channel['request'].update({'key': key})
@@ -116,14 +116,13 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
             symbol = self.markets_by_id[id]['symbol']
             channel['request'].update({'symbol': id})
             channel.update({'symbol': symbol})
-            if name == self.channels[self.ORDER_BOOK]['ex_name']:
-                result = {
+            if name == self.ORDER_BOOK:
+                depth = int(reply['len'])
+                channel['request'].update({
                     'prec': reply['prec'],
                     'freq': reply['freq'],
-                    'len': int(reply['len'])
-                }
-                channel['request'].update(result)
-                channel.update(result)
+                    'len': depth
+                })
         self.connections[websocket].append(channel)  # Register channel
 
     def parse_other_ws(self, reply):
@@ -145,7 +144,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
 
     def parse_ticker_ws(self, reply, market):
         ticker = reply[1]
-        return self.TICKER, super().parse_ticker(ticker, market)
+        return self.TICKER, self.parse_ticker(ticker, market)
 
     def parse_trades_ws(self, reply, market):
         trades = reply[1]
@@ -176,7 +175,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
             amount = abs(order[2])
             update[side].append([price, amount])
         self.update_order_book(update, market, snapshot=snapshot)
-        return 'order_book', {symbol: update}
+        return self.ORDER_BOOK, {symbol: update}
 
     def parse_ohlcvs_ws(self, reply, market):
         ohlcvs = reply[1]
