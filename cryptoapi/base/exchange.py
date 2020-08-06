@@ -99,16 +99,25 @@ class Exchange(ccxt.Exchange):
 
     async def consumer(self, websocket):
         async for reply in websocket:
-            parsed_reply = self.parse_reply(super().unjson(reply), websocket)
-            await self.result.put(parsed_reply)
+            reply = super().unjson(reply)
+            if self.is_general_reply(reply):
+                parsed_reply = self.parse_general_reply(reply, websocket)
+            else:
+                parsed_reply = self.parse_market_reply(reply, websocket)
+            if parsed_reply:
+                await self.result.put(parsed_reply)
 
-    def parse_reply(self, reply, websocket):
-        if reply[self.event] == self.subscribed:
-            return self.register_channel(reply, websocket)
-        elif reply[self.event] in self.error:
-            return self.parse_error_ws(reply)
-        elif reply[self.event] in self.others:
-            return self.parse_other_ws(reply)
+    def is_general_reply(self, reply):
+        return reply[self.event] == self.subscribed or reply[self.event] in self.errors
+
+    def parse_general_reply(self, reply, websocket):
+        if isinstance(reply, dict):
+            if reply[self.event] == self.subscribed:
+                return self.register_channel(reply, websocket)
+            elif reply[self.event] in self.errors:
+                return self.parse_error_ws(reply)
+
+    def parse_market_reply(self, reply, websocket):
         ex_channel_id = self.ex_channel_id_from_reply(reply)
         for c in self.connections[websocket]:
             if c['ex_channel_id'] == ex_channel_id:
@@ -121,6 +130,19 @@ class Exchange(ccxt.Exchange):
 
     def register_channel(self, reply, websocket):
         self.connections[websocket] = reply
+
+    def find_not_subbed_symbol(self, subed_ids):
+        subed_symbols = [
+            channel['symbol']
+            for channel in self.get_channels()
+        ]  # Subscribed and registered symbols
+        id, symbol = [
+            (id, self.markets_by_id[id]['symbol'])
+            for id in subed_ids
+            if self.markets_by_id[id]['symbol'] not in subed_symbols
+        ].pop()  # Find the only subed id that isn't registered yet
+        return id, symbol
+
 
     def parse_error_ws(self, reply, market=None):
         raise self.errors[reply['code']]

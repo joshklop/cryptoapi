@@ -34,9 +34,7 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
             'private': ''
         }
         self.event = 'event'
-        self.subscribed = 'subscribe'
-        # All message events that are not unified.
-        self.others = ['unsubscribed']
+        self.subscribed = 'subscribed'
 
     def build_requests(self, symbols, name, params={}):
         ids = [self.markets[s]['id'] for s in symbols]
@@ -61,9 +59,10 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
             req_params = {'interval': ex_timeframe}
             timeframe = self.timeframes[ex_timeframe]
             params = {'timeframe': timeframe}
-            id = reply[ex_name][timeframe][0]
+            subed_ids = reply[ex_name][timeframe]
         else:
-            id = reply[ex_name][0]
+            subed_ids = reply[ex_name]
+        id, symbol = self.find_not_subbed_symbol(subed_ids)
         symbol = self.markets_by_id[id]['symbol']
         request = self.build_requests([symbol], name, req_params)[0]
         channel = {

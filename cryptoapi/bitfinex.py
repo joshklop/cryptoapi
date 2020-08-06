@@ -127,6 +127,11 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
                 })
         self.connections[websocket].append(channel)  # Register channel.
 
+    def is_general_reply(self, reply):
+        if isinstance(reply, list):
+            return reply[1] == 'hb'
+        return reply[self.event] in [self.subscribed, 'info']
+
     def parse_other_ws(self, reply):
         code = reply['code'] if self.key_exists(reply, 'code') else None
         if code == 20051:
