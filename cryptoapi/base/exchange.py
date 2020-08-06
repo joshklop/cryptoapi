@@ -77,22 +77,16 @@ class Exchange(ccxt.Exchange):
     def build_requests(self, symbols, channel):
         return []
 
-    def throttle(throttled_method):
-        async def wrapper(self, requests, public):
-            rate_limit = self.max_connections['public'] if public else self.max_connections['private']
-            while requests:
-                async with rate_limit:
-                    await self.throttled_method()
-        return wrapper
-
-    @throttle
     async def subscribe(self, requests, public):
+        rate_limit = self.max_connections['public'] if public else self.max_connections['private']
         endpoint = self.ws_endpoint['public'] if public else self.ws_endpoint['private']
-        websocket = await websockets.connect(endpoint)
-        self.connections[websocket] = []  # Register websocket
-        await self.send(websocket, requests[:self.max_channels])
-        del requests[:self.max_channels]
-        await asyncio.create_task(self.consumer(websocket))
+        while requests:
+            async with rate_limit:
+                websocket = await websockets.connect(endpoint)
+                self.connections[websocket] = []  # Register websocket
+                await self.send(websocket, requests[:self.max_channels])
+                del requests[:self.max_channels]
+                await asyncio.create_task(self.consumer(websocket))
 
     async def send(self, websocket, requests):
         requests = [super(Exchange, self).json(r) for r in requests]
