@@ -35,12 +35,21 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             'private': ''
         }
         self.event = 'event'
+        self.errors = ['error']
         self.subscribed = 'subscribed'
         # All message events that are not unified.
         self.others = ['subscriptionStatus', 'systemStatus', 'heartbeat']
 
+    @property
+    def markets_by_wsnames(self):
+        return {
+            market['info']['wsname']: market
+            for market in self.markets.values()
+            if self.key_exists(market['info'], 'wsname')
+        } if self.markets else {}
+
     def build_requests(self, symbols, name, params={}):
-        ids = [self.markets[s]['id'] for s in symbols]
+        ids = [self.markets[s]['info']['wsname'] for s in symbols]
         ex_name = self.channels[name]['ex_name']
         return [
             {'event': 'subscribe',
@@ -67,8 +76,8 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         ex_channel_id = reply['channelID']
         ex_name = reply['subscription']['name']
         name = self.channels_by_ex_name[ex_name]['name']
-        id = reply['pair']
-        symbol = self.markets_by_id[id]['symbol']
+        wsname = reply['pair']
+        symbol = self.markets_by_wsnames[wsname]['symbol']
         request = {
             'event': 'subscribe',
             'pair': id,
@@ -90,6 +99,18 @@ class Kraken(exchange.Exchange, ccxt.kraken):
                 'timeframe': timeframe
             })
         self.connections[websocket].append(channel)  # Register channel
+
+    def is_general_reply(self, reply):
+        return isinstance(reply, dict)
+
+    def parse_general_reply(self, reply, websocket):
+        if reply[self.event] == 'subscriptionStatus':
+            if reply['status'] == self.subscribed:
+                return self.register_channel(reply, websocket)
+        elif reply[self.event] in self.errors:
+            return self.parse_error_ws(reply)
+        else:
+            return
 
     def parse_error_ws(self, reply, market=None):
         error_msg = reply['errorMessage']
@@ -160,7 +181,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
             self.update_order_book(update, market, snapshot=True)
         return 'order_book', {symbol: update}
 
-    def parse_ohlcvs(self, reply, market):
+    def parse_ohlcvs_ws(self, reply, market):
         ohlcvs = reply[1]
         symbol = market['symbol']
         if not isinstance(ohlcvs[0], list):

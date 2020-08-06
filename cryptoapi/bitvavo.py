@@ -45,8 +45,27 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
             for id in ids
         ]
 
+    async def subscribe_order_book(self, symbols, params={}):
+        requests = self.build_requests(symbols, self.ORDER_BOOK)
+        for symbol in symbols:
+            self.order_book[symbol] = await self.fetch_order_book(symbol, 100)
+        await self.subscribe(requests, public=True)
+
+    async def subscribe_ohlcvs(self, symbols, timeframe='1m'):
+        ex_timeframe = self.timeframes[timeframe]
+        params = {'interval': [ex_timeframe]}
+        requests = self.build_requests(symbols, self.OHLCVS, params)
+        await self.subscribe(requests, public=True)
+
     def ex_channel_id_from_reply(self, reply):
-        return (reply['event'], reply['market'])
+        ex_name = reply['event']
+        if ex_name == self.channels[self.TICKER]['ex_name']:
+            reply = reply['data'][0]
+        elif ex_name == 'trade':
+            ex_name = 'trades'
+        elif ex_name == 'candle':
+            ex_name = 'candles'
+        return (ex_name, reply['market'])
 
     def register_channel(self, reply, websocket):
         reply = reply['subscriptions']
@@ -79,16 +98,16 @@ class Bitvavo(exchange.Exchange, ccxt.bitvavo):
         pass  # Errors are not defined in API documentation.
 
     def parse_ticker_ws(self, reply, market):
-        return self.TICKER, super().parse_ticker(reply, market)
+        return self.TICKER, super().parse_ticker(reply['data'][0], market)
 
     def parse_trades_ws(self, reply, market):
-        return self.TRADES, self.parse_trades(reply, market)
+        return self.TRADES, self.parse_trades([reply], market)
 
     def parse_order_book_ws(self, reply, market):
-        snapshot = True if reply['nonce'] == 0 else False
+        symbol = market['symbol']
         update = super().parse_order_book(reply)
-        self.update_order_book(update, market, snapshot)
-        return 'order_book', {market['symbol']: update}
+        self.update_order_book(update, market, snapshot=False)
+        return 'order_book', {symbol: update}
 
     def parse_ohlcvs_ws(self, reply, market):
-        return self.OHLCVS, super().parse_ohlcvs(reply, market)
+        return self.OHLCVS, super().parse_ohlcvs(reply['candle'], market)

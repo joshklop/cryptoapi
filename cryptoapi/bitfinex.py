@@ -78,17 +78,18 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
 
     async def subscribe_ohlcvs(self, symbols, timeframe='1m'):
         ex_timeframe = self.timeframes[timeframe]
-        params = {'key': 'trade:' + ex_timeframe + ':' + id}
-        requests = self.build_requests(symbols, self.OHLCVS, params)
+        ids = [self.markets[s]['id'] for s in symbols]
+        ex_name = self.channels[self.OHLCVS]['ex_name']
+        requests = [
+            {'event': 'subscribe',
+             'channel': ex_name,
+             'key': 'trade:' + ex_timeframe + ':' + id}
+            for id in ids
+        ]
         await self.subscribe(requests, public=True)
 
     def ex_channel_id_from_reply(self, reply):
-        if isinstance(reply, dict):
-            return reply['chanId']
-        elif isinstance(reply, list):
-            return reply[0]
-        else:
-            raise UnknownResponse(reply)
+        return reply[0]
 
     def register_channel(self, reply, websocket):
         channel = {}
@@ -154,7 +155,7 @@ class Bitfinex(exchange.Exchange, ccxt.bitfinex2):
         return self.TICKER, self.parse_ticker(ticker, market)
 
     def parse_trades_ws(self, reply, market):
-        trades = reply[1]
+        trades = reply[1] if len(reply) < 3 else reply[2]
         if not isinstance(trades[0], list):
             trades = [trades]
         return self.TRADES, self.parse_trades(trades, market)
