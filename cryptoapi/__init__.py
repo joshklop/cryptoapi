@@ -1,6 +1,7 @@
 __version__ = '0.1.0'
 
 
+import cryptoapi.base
 from cryptoapi.base.exchange import Exchange
 
 from cryptoapi.bitfinex import Bitfinex
