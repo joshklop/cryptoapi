@@ -80,7 +80,7 @@ class Kraken(exchange.Exchange, ccxt.kraken):
         symbol = self.markets_by_wsnames[wsname]['symbol']
         request = {
             'event': 'subscribe',
-            'pair': id,
+            'pair': wsname,
             'subscription': reply['subscription']
         }
         channel = {

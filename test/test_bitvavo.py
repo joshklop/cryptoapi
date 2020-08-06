@@ -96,8 +96,13 @@ class TestBitvavo(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([correct_registration], self.exchange.connections[websocket_mock])
 
     def test_parse_order_book_ccxt_style(self):
-        # Even though we are assuming this is a snapshot, it has no effect on
-        # the internal logic.
+        self.exchange.order_book = {
+            self.test_market['symbol']: {
+                'bids': [],
+                'asks': [],
+                **BOOK_METADATA
+            }
+        }
         reply = {
             "event": self.exchange.channels[self.exchange.ORDER_BOOK]['ex_name'],
             "market": self.test_market['id'],

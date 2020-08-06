@@ -4,13 +4,18 @@ from cryptoapi.kraken import Kraken
 from test.helpers import AsyncContextManager, BOOK_METADATA, TEST_MARKET
 
 
+# Kraken's websocket api uses different ids
+TEST_MARKET.update({'pair': 'XBT/USD'})
+TEST_MARKET.update({'info': {'wsname': 'XBT/USD'}})
+
+
 class TestKraken(unittest.IsolatedAsyncioTestCase):
 
     async def asyncSetUp(self):
         async with Kraken():
             self.exchange = Kraken()
             self.exchange.markets = {TEST_MARKET['symbol']: TEST_MARKET}
-            self.exchange.markets_by_id = {TEST_MARKET['id']: TEST_MARKET}
+            self.exchange.markets_by_id = {TEST_MARKET['info']['wsname']: TEST_MARKET}
             self.test_market = TEST_MARKET
 
     def test_build_requests(self):
@@ -21,7 +26,7 @@ class TestKraken(unittest.IsolatedAsyncioTestCase):
 
         correct_requests = [{
             'event': 'subscribe',
-            'pair': [self.test_market['id']],
+            'pair': [self.test_market['info']['wsname']],
             'subscription': {'name': self.exchange.channels[name]['ex_name']}
         }]
         self.assertEqual(correct_requests, requests)
@@ -51,7 +56,7 @@ class TestKraken(unittest.IsolatedAsyncioTestCase):
         """Ticker, trades, order_book"""
         name = self.exchange.TICKER
         ex_name = self.exchange.channels[name]['ex_name']
-        id = self.test_market['id']
+        id = self.test_market['info']['wsname']
         ex_channel_id = 0
         reply = {
             "channelID": ex_channel_id,
@@ -71,7 +76,7 @@ class TestKraken(unittest.IsolatedAsyncioTestCase):
         correct_registration = [{
             'request': {
                 'event': 'subscribe',
-                'pair': self.test_market['id'],
+                'pair': id,
                 'subscription': reply['subscription']
             },
             'channel_id': 0,
@@ -87,7 +92,7 @@ class TestKraken(unittest.IsolatedAsyncioTestCase):
         name = self.exchange.OHLCVS
         ex_name = self.exchange.channels[name]['ex_name']
         ex_channel_id = 0
-        id = self.test_market['id']
+        id = self.test_market['info']['wsname']
         ex_timeframe = 5
         timeframe = '5m'
         reply = {

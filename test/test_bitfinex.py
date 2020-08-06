@@ -28,21 +28,15 @@ class TestBitfinex(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(correct_requests, requests)
 
     def test_ex_channel_id_from_reply(self):
-        dict_reply = {
-            'chanId': 0
-        }
-        list_reply = [
+        reply = [
             0,
             [
                 123,
                 456
             ]
         ]
-        unknown_reply = 1
 
-        self.assertEqual(0, self.exchange.ex_channel_id_from_reply(dict_reply))
-        self.assertEqual(0, self.exchange.ex_channel_id_from_reply(list_reply))
-        self.assertRaises(UnknownResponse, self.exchange.ex_channel_id_from_reply, unknown_reply)
+        self.assertEqual(0, self.exchange.ex_channel_id_from_reply(reply))
 
     def test_register_ticker_or_trades_channel(self):
         """This stands for both ticker and trades because they're formatted the same"""
