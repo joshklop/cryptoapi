@@ -1,3 +1,8 @@
+__all__ = [
+    'Exchange'
+]
+
+
 import asyncio
 import ccxt
 import websockets
