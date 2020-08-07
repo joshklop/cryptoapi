@@ -2,8 +2,8 @@
 
 Asynchronous cryptocurrency REST and websocket API with support for multiple exchanges.
 
-Cryptoapi is built on top of the fantastic [CCXT](github.com/ccxt/ccxt) library.
-If you plan to do any serious trading, I would recommend paying for access to [CCXT Pro](ccxt.pro) because cryptoapi is still in development.
+Cryptoapi is built on top of the fantastic [CCXT](https://github.com/ccxt/ccxt) library.
+If you plan to do any serious trading, I would recommend paying for access to [CCXT Pro](https://ccxt.pro) because cryptoapi is still in development.
 
 ## Installation
 
@@ -20,7 +20,7 @@ The API currently supports Bitfinex (API version 2), Bitvavo, Coinbase Pro, and 
 
 ### Unified Methods
 
-Each exchange has four unified websocket methods in addition to the REST methods provided by [CCXT](github.com/ccxt/ccxt).
+Each exchange has four unified websocket methods in addition to the REST methods provided by [CCXT](https://github.com/ccxt/ccxt).
 All results are formatted the same as in the CCXT library.
 
 All of the methods put the results received from the exchange in the `exchange_instance.result` asyncio queue.
