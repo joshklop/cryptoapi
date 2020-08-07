@@ -7,7 +7,7 @@ README = (HERE / 'README.md').read_text()
 
 setup(
     name='cryptoapi',
-    version='0.1.2',
+    version='0.1.22',
     description='Asynchronous cryptocurrency REST and websocket API with support for multiple exchanges.',
     long_description=README,
     long_description_content_type='text/markdown',
@@ -21,7 +21,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.8',
     ],
-    packages=['cryptoapi'],
+    packages=['cryptoapi', 'cryptoapi/base'],
     include_package_data=True,
     install_requires=['aiolimiter', 'ccxt', 'websockets'],
 )
