@@ -3,7 +3,7 @@
 Asynchronous cryptocurrency REST and websocket API with support for multiple exchanges.
 
 Cryptoapi is built on top of the fantastic [CCXT](https://github.com/ccxt/ccxt) library.
-If you plan to do any serious trading, I would recommend paying for access to [CCXT Pro](https://ccxt.pro) because cryptoapi is still in development.
+If you plan to do any serious trading, I would recommend paying for access to [CCXT Pro](https://ccxt.pro) because cryptoapi is an unstable test project.
 
 ## Installation
 
