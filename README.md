@@ -80,8 +80,8 @@ An example structure of the dictionary is outlined below.
 ```python
 {
     'BTC/USD': {
-        'bids': [[11111, 1.7], ...]             # [price, amount] sorted by price in descending order (best bid first).    
-        'asks': [[11112, 3], ...]               # [price, amount] sorted by price in ascending order (best ask first).
+        'bids': [[11111, 1.7], ...],            # [price, amount] sorted by price in descending order (best bid first).    
+        'asks': [[11112, 3], ...],              # [price, amount] sorted by price in ascending order (best ask first).
         'timestamp': 1596729013,                # Unix timestamp for when the book was last updated.
         'datetime': '2020-08-06T15:50:56.714Z', # iso860 datetime. Computed from the timestamp property.
         'nonce': 109335233,                     # Exchange-provided nonce. None if not provided.
