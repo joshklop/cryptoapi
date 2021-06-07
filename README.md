@@ -5,6 +5,15 @@ Asynchronous cryptocurrency REST and websocket API with support for multiple exc
 Cryptoapi is built on top of the fantastic [CCXT](https://github.com/ccxt/ccxt) library.
 If you plan to do any serious trading, I would recommend paying for access to [CCXT Pro](https://ccxt.pro) because cryptoapi is an unstable test project.
 
+**Note**: I am have recently started working to update this project after a nearly year-long hiatus.
+Below are some of the features I'm hoping to add, but I don't have a strict timeline.
+* [ ] Type hints
+* [ ] Transition tests from `unittest` to `pytest`
+* [ ] Architecture changes (these will help cut-down on the ridiculous amount of `asyncio` boilerplate)
+  * [ ] The `Exchange.result` `asyncio.Queue` should be divided into channel-specific queues (e.g. `Exchange.result_ticker`)
+  * [ ] The base `Exchange` class should leave more implementation details to its children
+* [ ] Improve documentation
+
 ## Installation
 
 Cryptoapi is available on PyPI.
