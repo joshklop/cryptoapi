@@ -1,8 +1,6 @@
-from ccxt import errors
-from ccxt.base.errors import ExchangeError
-from ccxt.base.errors import NetworkError
-from ccxt.base.errors import DDoSProtection
-
+from ccxt import ExchangeError
+from ccxt import NetworkError
+from ccxt import DDoSProtection  # FIXME does not exist in CCXT namespace?
 
 cryptoapi_errors = [
     'error_hierarchy',
@@ -14,7 +12,7 @@ cryptoapi_errors = [
 ]
 
 # Do not include ccxt.error_hierarchy
-__all__ = errors.__all__[1:] + cryptoapi_errors
+# __all__ = errors.__all__[1:] + cryptoapi_errors
 
 error_hierarchy = {
     'BaseError': {
